@@ -53,6 +53,14 @@ function Contador({
 export default function Contadores() {
   const ref = useRef<HTMLElement>(null);
   const [active, setActive] = useState(false);
+  const [stats, setStats] = useState({ totalDrawings: 0, todayDrawings: 0, totalUsers: 0, daysActive: 0 });
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -79,13 +87,13 @@ export default function Contadores() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
           <div className="hand-border rounded-[18px_22px_14px_26px] bg-[#FDFBF7] p-8 rotate-[-0.7deg]">
-            <Contador target={12458} label="dibujos creados" active={active} duration={2000} />
+            <Contador target={stats.totalDrawings} label="dibujos creados" active={active} duration={2000} />
           </div>
           <div className="hand-border rounded-[22px_16px_26px_18px] bg-[#FDFBF7] p-8 rotate-[0.5deg]">
-            <Contador target={342} label="dibujados hoy" color="text-blue-600" active={active} duration={1400} />
+            <Contador target={stats.todayDrawings} label="dibujados hoy" color="text-blue-600" active={active} duration={1400} />
           </div>
           <div className="hand-border rounded-[20px_24px_16px_28px] bg-[#FDFBF7] p-8 rotate-[-0.4deg]">
-            <Contador target={1} label="mancha nueva cada día" active={active} duration={800} />
+            <Contador target={stats.daysActive} label="mancha nueva cada día" active={active} duration={800} />
           </div>
         </div>
       </div>

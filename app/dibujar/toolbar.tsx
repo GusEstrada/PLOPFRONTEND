@@ -9,6 +9,9 @@ export default function Toolbar({
   setSize,
   onUndo,
   onClear,
+  onSave,
+  saving,
+  saved,
 }: {
   color: string;
   setColor: (c: string) => void;
@@ -16,6 +19,9 @@ export default function Toolbar({
   setSize: (s: number) => void;
   onUndo: () => void;
   onClear: () => void;
+  onSave: () => void;
+  saving: boolean;
+  saved: boolean;
 }) {
   return (
     <div className="flex md:flex-col items-center gap-4 md:gap-5 p-4 md:p-5 bg-white/90 backdrop-blur-sm border-t-2 md:border-t-0 md:border-r-2 border-black">
@@ -90,6 +96,25 @@ export default function Toolbar({
           🗑
         </button>
       </div>
+
+      <div className="w-px h-6 md:w-6 md:h-px bg-gray-200" />
+
+      {/* Subir */}
+      <button
+        onClick={onSave}
+        disabled={saving || saved}
+        className="font-hand text-sm px-4 py-2 rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:hover:translate-y-0"
+        style={{
+          background: saved
+            ? "linear-gradient(135deg, #059669, #10b981)"
+            : "linear-gradient(135deg, #4f46e5, #7c3aed)",
+          boxShadow: "0 4px 16px rgba(79,70,229,0.35)",
+          borderRadius: "14px 16px 12px 18px",
+          transform: "rotate(-0.3deg)",
+        }}
+      >
+        {saving ? "..." : saved ? "✅ subido" : "subir →"}
+      </button>
     </div>
   );
 }

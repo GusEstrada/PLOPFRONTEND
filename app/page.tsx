@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { apiFetch, setToken, clearToken, setUser, removeUser } from "@/lib/api";
 
 export default function Login() {
   const router = useRouter();
@@ -11,20 +12,52 @@ export default function Login() {
   const [correo, setCorreo] = useState("");
   const [contra, setContra] = useState("");
   const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleEntrar() {
-    if (nombre.trim() === "") {
+  async function handleEntrar() {
+    setError(false);
+    setErrorMsg("");
+
+    if (modo === "register" && !nombre.trim()) {
       setError(true);
       setTimeout(() => setError(false), 600);
       return;
     }
-    localStorage.setItem("plop_nombre", nombre.trim());
-    router.push("/inicio");
+    if (!correo.trim() || !contra.trim()) {
+      setError(true);
+      setTimeout(() => setError(false), 600);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const endpoint = modo === "login" ? "/auth/login" : "/auth/register";
+      const body = modo === "login"
+        ? { email: correo.trim(), password: contra }
+        : { name: nombre.trim(), email: correo.trim(), password: contra };
+
+      const res = await apiFetch<{ token: string; user: { id: string; name: string; email: string } }>(endpoint, {
+        method: "POST",
+        body,
+      });
+
+      setToken(res.token);
+      setUser(res.user);
+      router.push("/inicio");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Error al conectar");
+      setError(true);
+      setTimeout(() => setError(false), 600);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function switchModo(m: "login" | "register") {
     setModo(m);
     setError(false);
+    setErrorMsg("");
     setNombre(""); setCorreo(""); setContra("");
   }
 
@@ -423,61 +456,74 @@ export default function Login() {
         {/* Campos */}
         <div className="flex flex-col gap-3">
 
-          {/* Nombre — siempre visible */}
-          <div className={error ? "shake" : ""}>
-            <label className="font-hand text-sm text-gray-500 block mb-1">nombre de usuario</label>
+          {/* Nombre — solo en registro */}
+          {modo === "register" && (
+            <div className={error && !nombre.trim() ? "shake" : ""}>
+              <label className="font-hand text-sm text-gray-500 block mb-1">nombre de usuario</label>
+              <input
+                type="text"
+                value={nombre}
+                onChange={e => setNombre(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleEntrar()}
+                placeholder="tu nombre aquí"
+                className="w-full font-hand text-base text-gray-800 placeholder-gray-300 px-4 py-3 rounded-xl outline-none transition-all duration-200"
+                style={{
+                  background: "rgba(255,255,255,0.7)",
+                  border: error && !nombre.trim() ? "1.5px solid rgba(239,68,68,0.6)" : "1.5px solid rgba(0,0,0,0.08)",
+                  boxShadow: error && !nombre.trim() ? "0 0 0 3px rgba(239,68,68,0.1)" : "none",
+                }}
+              />
+              {error && !nombre.trim() && <p className="font-hand text-xs text-red-400 mt-1 pl-1">escribe tu nombre para continuar</p>}
+            </div>
+          )}
+
+          {/* Correo — siempre visible */}
+          <div className={error && !correo.trim() ? "shake" : ""}>
+            <label className="font-hand text-sm text-gray-500 block mb-1">correo</label>
             <input
-              type="text"
-              value={nombre}
-              onChange={e => setNombre(e.target.value)}
+              type="email"
+              value={correo}
+              onChange={e => setCorreo(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleEntrar()}
-              placeholder="tu nombre aquí"
+              placeholder="correo@ejemplo.com"
               className="w-full font-hand text-base text-gray-800 placeholder-gray-300 px-4 py-3 rounded-xl outline-none transition-all duration-200"
               style={{
                 background: "rgba(255,255,255,0.7)",
-                border: error ? "1.5px solid rgba(239,68,68,0.6)" : "1.5px solid rgba(0,0,0,0.08)",
-                boxShadow: error ? "0 0 0 3px rgba(239,68,68,0.1)" : "none",
+                border: error && !correo.trim() ? "1.5px solid rgba(239,68,68,0.6)" : "1.5px solid rgba(0,0,0,0.08)",
+                boxShadow: error && !correo.trim() ? "0 0 0 3px rgba(239,68,68,0.1)" : "none",
               }}
             />
-            {error && <p className="font-hand text-xs text-red-400 mt-1 pl-1">escribe tu nombre para continuar</p>}
+            {error && !correo.trim() && <p className="font-hand text-xs text-red-400 mt-1 pl-1">ingresá tu correo</p>}
           </div>
 
-          {/* Correo + Contraseña — solo en registro */}
-          {modo === "register" && (
-            <>
-              <div>
-                <label className="font-hand text-sm text-gray-500 block mb-1">correo</label>
-                <input
-                  type="email"
-                  value={correo}
-                  onChange={e => setCorreo(e.target.value)}
-                  placeholder="correo@ejemplo.com"
-                  className="w-full font-hand text-base text-gray-800 placeholder-gray-300 px-4 py-3 rounded-xl outline-none transition-all duration-200"
-                  style={{ background: "rgba(255,255,255,0.7)", border: "1.5px solid rgba(0,0,0,0.08)" }}
-                />
-              </div>
-              <div>
-                <label className="font-hand text-sm text-gray-500 block mb-1">contraseña</label>
-                <input
-                  type="password"
-                  value={contra}
-                  onChange={e => setContra(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleEntrar()}
-                  placeholder="••••••••"
-                  className="w-full font-hand text-base text-gray-800 placeholder-gray-300 px-4 py-3 rounded-xl outline-none transition-all duration-200"
-                  style={{ background: "rgba(255,255,255,0.7)", border: "1.5px solid rgba(0,0,0,0.08)" }}
-                />
-              </div>
-            </>
-          )}
+          {/* Contraseña — siempre visible */}
+          <div className={error && !contra.trim() ? "shake" : ""}>
+            <label className="font-hand text-sm text-gray-500 block mb-1">contraseña</label>
+            <input
+              type="password"
+              value={contra}
+              onChange={e => setContra(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleEntrar()}
+              placeholder="••••••••"
+              className="w-full font-hand text-base text-gray-800 placeholder-gray-300 px-4 py-3 rounded-xl outline-none transition-all duration-200"
+              style={{
+                background: "rgba(255,255,255,0.7)",
+                border: error && !contra.trim() ? "1.5px solid rgba(239,68,68,0.6)" : "1.5px solid rgba(0,0,0,0.08)",
+                boxShadow: error && !contra.trim() ? "0 0 0 3px rgba(239,68,68,0.1)" : "none",
+              }}
+            />
+            {error && !contra.trim() && <p className="font-hand text-xs text-red-400 mt-1 pl-1">ingresá tu contraseña</p>}
+            {error && errorMsg && <p className="font-hand text-xs text-red-400 mt-1 pl-1">{errorMsg}</p>}
+          </div>
 
           {/* Botón */}
           <button
             onClick={handleEntrar}
-            className="mt-1 w-full font-hand text-base py-3 rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer"
+            disabled={loading}
+            className="mt-1 w-full font-hand text-base py-3 rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] cursor-pointer disabled:opacity-60"
             style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 6px 24px rgba(79,70,229,0.35)" }}
           >
-            {modo === "login" ? "entrar →" : "crear cuenta →"}
+            {loading ? "..." : modo === "login" ? "entrar →" : "crear cuenta →"}
           </button>
         </div>
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Stage, Layer, Line, Circle, Group } from "react-konva";
-import { blotPoints, satelliteBlots, generateBlotStageData } from "./inkblot";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Stage, Layer, Line, Circle, Image as KonvaImage } from "react-konva";
+import { generateBlotStageData, defaultBlotData } from "./inkblot";
+import type { BlotData } from "./inkblot";
 import type { KonvaEventObject } from "konva/lib/Node";
 
 interface LineData {
@@ -10,6 +11,14 @@ interface LineData {
   points: number[];
   color: string;
   size: number;
+}
+
+export interface ImageTransform {
+  offsetX: number;
+  offsetY: number;
+  scale: number;
+  imgW: number;
+  imgH: number;
 }
 
 interface Particle {
@@ -30,6 +39,10 @@ export default function KonvaCanvas({
   toolSize,
   undoRef,
   clearRef,
+  blot,
+  linesRef,
+  imageUrl,
+  imageTransformRef,
 }: {
   width: number;
   height: number;
@@ -37,9 +50,14 @@ export default function KonvaCanvas({
   toolSize: number;
   undoRef: React.MutableRefObject<(() => void) | null>;
   clearRef: React.MutableRefObject<(() => void) | null>;
+  blot?: BlotData;
+  linesRef?: React.MutableRefObject<LineData[]>;
+  imageUrl?: string;
+  imageTransformRef?: React.MutableRefObject<ImageTransform>;
 }) {
   const [lines, setLines] = useState<LineData[]>([]);
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [bgImage, setBgImage] = useState<HTMLImageElement | null>(null);
   const isDrawing = useRef(false);
   const lineIdRef = useRef(0);
   const particleIdRef = useRef(0);
@@ -47,10 +65,34 @@ export default function KonvaCanvas({
   const lastParticleTime = useRef(0);
   const stageRef = useRef<any>(null);
 
-  const blot = generateBlotStageData(width, height);
+  useEffect(() => {
+    if (!imageUrl) { setBgImage(null); return; }
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.src = imageUrl;
+    img.onload = () => setBgImage(img);
+    img.onerror = () => setBgImage(null);
+  }, [imageUrl]);
+
+  const imageTransform = useMemo(() => {
+    if (!bgImage) return { offsetX: 0, offsetY: 0, scale: 1, imgW: width, imgH: height };
+    const s = Math.min(width / bgImage.naturalWidth, height / bgImage.naturalHeight);
+    return {
+      scale: s,
+      offsetX: (width - bgImage.naturalWidth * s) / 2,
+      offsetY: (height - bgImage.naturalHeight * s) / 2,
+      imgW: bgImage.naturalWidth * s,
+      imgH: bgImage.naturalHeight * s,
+    };
+  }, [bgImage, width, height]);
+
+  useEffect(() => {
+    if (imageTransformRef) imageTransformRef.current = imageTransform;
+  }, [imageTransform, imageTransformRef]);
+
+  const blotData = !imageUrl ? generateBlotStageData(width, height, blot || defaultBlotData) : { mainBlot: [], satellites: [] };
 
   const addParticles = useCallback((x: number, y: number, count: number) => {
-    const now = Date.now();
     const newParticles: Particle[] = [];
     for (let i = 0; i < count; i++) {
       newParticles.push({
@@ -129,7 +171,6 @@ export default function KonvaCanvas({
     isDrawing.current = false;
   }, []);
 
-  // particle update loop
   useEffect(() => {
     const interval = setInterval(() => {
       setParticles((prev) =>
@@ -148,7 +189,6 @@ export default function KonvaCanvas({
     return () => clearInterval(interval);
   }, []);
 
-  // undo / clear refs
   useEffect(() => {
     undoRef.current = () => {
       setLines((prev) => prev.slice(0, -1));
@@ -158,6 +198,10 @@ export default function KonvaCanvas({
       setParticles([]);
     };
   }, [undoRef, clearRef]);
+
+  useEffect(() => {
+    if (linesRef) linesRef.current = lines;
+  }, [lines, linesRef]);
 
   return (
     <Stage
@@ -172,24 +216,27 @@ export default function KonvaCanvas({
       onTouchEnd={handleMouseUp}
       style={{ background: "#FAFAFA", cursor: "crosshair" }}
     >
-      {/* Ink blot layer */}
       <Layer>
-        <Group x={0} y={0}>
-          <Line
-            points={blot.mainBlot}
-            closed
-            tension={0.4}
-            fill="rgba(0,0,0,0.12)"
-            stroke="rgba(0,0,0,0.15)"
-            strokeWidth={1}
-          />
-          {blot.satellites.map((s, i) => (
-            <Circle key={i} x={s.x} y={s.y} radius={s.r} fill="rgba(0,0,0,0.12)" />
-          ))}
-        </Group>
+        {bgImage ? (
+          <KonvaImage image={bgImage} x={imageTransform.offsetX} y={imageTransform.offsetY}
+            width={imageTransform.imgW} height={imageTransform.imgH} />
+        ) : (
+          <>
+            <Line
+              points={blotData.mainBlot}
+              closed
+              tension={0.4}
+              fill="rgba(0,0,0,0.12)"
+              stroke="rgba(0,0,0,0.15)"
+              strokeWidth={1}
+            />
+            {blotData.satellites.map((s, i) => (
+              <Circle key={i} x={s.x} y={s.y} radius={s.r} fill="rgba(0,0,0,0.12)" />
+            ))}
+          </>
+        )}
       </Layer>
 
-      {/* Drawing layer */}
       <Layer>
         {lines.map((line) => (
           <Line
@@ -205,7 +252,6 @@ export default function KonvaCanvas({
         ))}
       </Layer>
 
-      {/* Particles layer */}
       <Layer>
         {particles.map((p) => (
           <Circle

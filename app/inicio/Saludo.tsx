@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getUser } from "@/lib/api";
 
 export default function Saludo() {
   const [nombre, setNombre] = useState("");
 
   useEffect(() => {
-    const n = localStorage.getItem("plop_nombre");
-    if (n) setNombre(n);
+    const user = getUser();
+    if (user) setNombre(user.name);
   }, []);
 
   if (!nombre) return null;
