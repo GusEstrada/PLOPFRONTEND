@@ -1,192 +1,143 @@
 import Image from "next/image";
-import Saludo from "./Saludo";
+import NavBar from "./NavBar";
 import Contadores from "./Contadores";
 
 export default function Inicio() {
   return (
-    <div className="font-sans">
+    <div className="bg-[#FFFDF7] min-h-screen">
 
-      {/* ── Hero (white) ── */}
-      <section className="min-h-screen flex items-center px-6 md:px-16 lg:px-24 bg-white relative">
+      {/* Decoración fija de fondo */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(ellipse,#fde68a 0%,transparent 65%)", filter: "blur(90px)" }}/>
+        <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] rounded-full opacity-10"
+          style={{ background: "radial-gradient(ellipse,#ddd6fe 0%,transparent 70%)", filter: "blur(80px)" }}/>
+      </div>
 
-        {/* Nav */}
-        <nav
-          className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-6 md:px-16 lg:px-24 py-5 max-w-6xl mx-auto w-full"
-          style={{ left: "50%", transform: "translateX(-50%)" }}
-        >
-          <span className="font-display text-2xl rotate-[-0.5deg] text-black select-none">PLOP</span>
-          <div className="flex items-center gap-4">
-            <a href="/dibujar" className="font-hand text-base text-gray-400 hover:text-black transition-colors rotate-[-0.4deg]">dibujar</a>
-            <a href="/perfil"  className="font-hand text-base text-gray-400 hover:text-black transition-colors rotate-[-0.2deg]">perfil</a>
-            <Saludo />
-          </div>
-        </nav>
+      <NavBar />
 
-        {/* Hero content */}
-        <div className="max-w-6xl mx-auto w-full flex flex-col md:flex-row items-center gap-10 md:gap-16">
+      {/* ── HERO centrado ── */}
+      <section className="relative z-10 max-w-6xl mx-auto px-6 md:px-16 lg:px-24 pt-16 pb-32 flex flex-col items-center text-center">
 
-          {/* Pulpo */}
-          <div className="flex-1 flex justify-center md:justify-end -ml-0 md:-ml-16">
+        {/* Badge */}
+        <span className="font-hand text-sm text-indigo-500 px-4 py-1.5 rounded-full mb-10"
+          style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}>
+          ✦ una mancha nueva cada día
+        </span>
+
+        {/* Pulpito encima de PLOP */}
+        <div className="relative flex flex-col items-center">
+          <div className="relative z-20 mb-[-20px] md:mb-[-32px]">
+            <div className="absolute inset-0 rounded-full"
+              style={{ background: "radial-gradient(circle,rgba(165,180,252,0.5) 0%,transparent 65%)", filter: "blur(28px)" }}/>
             <Image
               src="/Pulpito.png"
               alt="Pulpito PLOP"
-              width={520}
-              height={520}
-              className="object-contain w-72 h-72 md:w-[480px] md:h-[480px] lg:w-[520px] lg:h-[520px] drop-shadow-xl"
+              width={300}
+              height={300}
+              className="relative object-contain w-36 h-36 md:w-56 md:h-56 drop-shadow-2xl"
               priority
             />
           </div>
-
-          {/* Texto */}
-          <div className="flex-1 flex flex-col items-center md:items-start gap-5">
-            <h1 className="font-display text-7xl md:text-8xl lg:text-9xl leading-none rotate-[-1.5deg] select-none">
-              PLOP
-            </h1>
-            <p className="font-hand text-lg md:text-xl lg:text-2xl text-gray-700 leading-relaxed text-center md:text-left">
-              una mancha nueva cada día.
-              <br />
-              dibújala a tu manera.
-            </p>
-            <div className="flex flex-wrap gap-4 mt-2">
-              <a
-                href="/dibujar"
-                className="hand-border-thick rounded-[14px_18px_12px_16px] bg-black text-white font-hand text-lg md:text-xl px-8 py-3 inline-block rotate-[-0.5deg] transition-all duration-150 hover:bg-gray-800 hover:rotate-[0deg] active:scale-95"
-              >
-                dibujar ahora
-              </a>
-              <a
-                href="/galeria"
-                className="hand-border-thick rounded-[16px_12px_18px_14px] text-black font-hand text-lg md:text-xl px-8 py-3 inline-block rotate-[0.6deg] transition-all duration-150 hover:bg-blue-50 hover:rotate-[0deg] active:scale-95"
-              >
-                explorar
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Cómo funciona ── */}
-      <section className="py-20 md:py-28 px-6 md:px-16 lg:px-24 bg-[#FDFBF7]">
-        <div className="max-w-6xl mx-auto">
-          <h2 className="font-display text-4xl md:text-5xl text-center mb-3 rotate-[-1deg]">
-            ¿Qué es PLOP?
-          </h2>
-          <p className="font-hand text-lg text-gray-500 text-center mb-14 max-w-lg mx-auto">
-            un experimento de imaginación colectiva.
-            <br />
-            todos los días una mancha nueva.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-
-            {/* Card 1 */}
-            <div className="hand-border rounded-[20px_24px_16px_28px] bg-[#FFF9C4] p-6 md:p-8 flex flex-col items-center text-center rotate-[-0.8deg] hover:rotate-[0deg] hover:scale-[1.02] transition-all duration-200">
-              <span className="text-6xl mb-1 select-none">🫧</span>
-              <span className="font-hand text-xs text-yellow-600/60 mb-4 tracking-widest">01</span>
-              <h3 className="font-display text-2xl mb-2">ve la mancha</h3>
-              <p className="font-hand text-base text-gray-700 leading-relaxed">
-                cada mañana aparece una nueva mancha de tinta. nadie sabe qué es.
-              </p>
-            </div>
-
-            {/* Card 2 */}
-            <div className="hand-border rounded-[22px_18px_26px_14px] bg-[#FFCDD2] p-6 md:p-8 flex flex-col items-center text-center rotate-[0.7deg] hover:rotate-[0deg] hover:scale-[1.02] transition-all duration-200">
-              <span className="text-6xl mb-1 select-none">🖊️</span>
-              <span className="font-hand text-xs text-red-400/60 mb-4 tracking-widest">02</span>
-              <h3 className="font-display text-2xl mb-2">dibuja encima</h3>
-              <p className="font-hand text-base text-gray-700 leading-relaxed">
-                usa tu imaginación. dibuja, garabatea, transforma la mancha en lo que quieras.
-              </p>
-            </div>
-
-            {/* Card 3 */}
-            <div className="hand-border rounded-[18px_22px_20px_24px] bg-[#C8E6C9] p-6 md:p-8 flex flex-col items-center text-center rotate-[-0.6deg] hover:rotate-[0deg] hover:scale-[1.02] transition-all duration-200">
-              <span className="text-6xl mb-1 select-none">🌍</span>
-              <span className="font-hand text-xs text-green-600/60 mb-4 tracking-widest">03</span>
-              <h3 className="font-display text-2xl mb-2">descubre</h3>
-              <p className="font-hand text-base text-gray-700 leading-relaxed">
-                explora el foro en vivo y mira cómo otros interpretaron la misma mancha.
-              </p>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ── Manifesto ── */}
-      <section className="relative py-32 md:py-44 px-6 md:px-16 lg:px-24 bg-[#07051A] overflow-hidden">
-
-        {/* Glows */}
-        <div className="pointer-events-none absolute inset-0">
-          <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full opacity-30"
-            style={{ background: "radial-gradient(ellipse, #4F46E5 0%, transparent 65%)", filter: "blur(80px)" }}
-          />
-          <div
-            className="absolute -bottom-20 -right-20 w-[400px] h-[400px] rounded-full opacity-20"
-            style={{ background: "radial-gradient(ellipse, #7C3AED 0%, transparent 70%)", filter: "blur(70px)" }}
-          />
-        </div>
-
-        {/* Mancha decorativa SVG de fondo */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.06]">
-          <svg viewBox="0 0 400 400" className="w-[600px] h-[600px]" fill="white">
-            <path d="M200,60 C260,40 340,80 360,150 C385,230 350,310 280,340 C210,370 130,350 90,290 C45,220 55,130 110,90 C145,65 175,72 200,60 Z" />
-            <circle cx="310" cy="120" r="35" />
-            <circle cx="80" cy="260" r="25" />
-            <ellipse cx="200" cy="340" rx="50" ry="25" transform="rotate(-20 200 340)" />
-            <circle cx="340" cy="300" r="18" />
-          </svg>
-        </div>
-
-        {/* Contenido */}
-        <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center gap-10">
-
-          {/* Cita */}
-          <div className="space-y-2">
-            <p className="font-hand text-3xl md:text-5xl lg:text-6xl text-white/90 leading-tight">
-              todos ven algo diferente.
-            </p>
-            <p
-              className="font-hand text-4xl md:text-6xl lg:text-7xl leading-tight"
-              style={{
-                background: "linear-gradient(135deg, #818CF8 0%, #C4B5FD 50%, #60A5FA 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              ¿tú qué ves?
-            </p>
-          </div>
-
-          {/* Separador decorativo */}
-          <div className="flex items-center gap-3 opacity-40">
-            <div className="w-12 h-px bg-indigo-400" />
-            <div className="w-2 h-2 rounded-full bg-indigo-400" />
-            <div className="w-12 h-px bg-indigo-400" />
-          </div>
-
-          {/* Botón */}
-          <a
-            href="/galeria"
-            className="font-hand text-lg md:text-xl px-10 py-4 rounded-2xl text-white transition-all duration-200 hover:-translate-y-1 active:scale-95"
-            style={{
-              background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
-              boxShadow: "0 8px 40px rgba(79,70,229,0.5), 0 2px 8px rgba(0,0,0,0.4)",
-            }}
+          <h1
+            className="relative z-10 font-display text-[64px] md:text-[100px] lg:text-[130px] text-gray-900 leading-none select-none"
+            style={{ letterSpacing: "-0.02em", transform: "rotate(-1.2deg)" }}
           >
+            PLOP
+          </h1>
+        </div>
+
+        <p className="font-hand text-xl md:text-2xl text-gray-400 leading-relaxed mt-8 max-w-xs">
+          dibújala a tu manera.<br />todos ven algo diferente.
+        </p>
+
+        <div className="flex flex-wrap gap-3 mt-8 justify-center">
+          <a href="/dibujar"
+            className="font-hand text-lg md:text-xl px-8 py-3.5 rounded-2xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
+            style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 8px 28px rgba(79,70,229,0.4)" }}>
+            dibujar ahora
+          </a>
+          <a href="/galeria"
+            className="font-hand text-lg md:text-xl px-8 py-3.5 rounded-2xl text-indigo-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-50 active:scale-95"
+            style={{ border: "1.5px solid rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.04)" }}>
+            explorar →
+          </a>
+        </div>
+      </section>
+
+      {/* ── ¿QUÉ ES PLOP? (pasos editoriales) ── */}
+      <section className="relative z-10 px-6 md:px-16 lg:px-24 py-16 md:py-24">
+        <div className="max-w-6xl mx-auto">
+
+          <div className="text-center mb-16">
+            <h2 className="font-display text-4xl md:text-5xl text-gray-900 mb-3">¿Qué es PLOP?</h2>
+            <p className="font-hand text-lg text-gray-400">un experimento de imaginación colectiva</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+            {[
+              { num: "01", emoji: "🫧", title: "ve la mancha",   text: "cada mañana aparece una nueva mancha de tinta. nadie sabe qué es.",                         color: "#f59e0b" },
+              { num: "02", emoji: "🖊️", title: "dibuja encima", text: "usa tu imaginación. dibuja, garabatea, transforma la mancha en lo que tú quieras.",         color: "#4f46e5" },
+              { num: "03", emoji: "🌍", title: "descubre",       text: "explora el foro en vivo y mira cómo otros interpretaron la misma mancha.",                  color: "#059669" },
+            ].map(({ num, emoji, title, text, color }) => (
+              <div key={num} className="flex flex-col items-center text-center gap-5">
+                {/* Emoji en caja coloreada */}
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
+                  style={{ background: `${color}12`, border: `1.5px solid ${color}25` }}>
+                  {emoji}
+                </div>
+                {/* Número */}
+                <span className="font-display text-sm tracking-[0.2em] uppercase" style={{ color, opacity: 0.8 }}>{num}</span>
+                {/* Texto */}
+                <div>
+                  <h3 className="font-display text-2xl text-gray-900 mb-2">{title}</h3>
+                  <p className="font-hand text-base text-gray-400 leading-relaxed max-w-[240px] mx-auto">{text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── MANIFESTO abierto ── */}
+      <section className="relative z-10 px-6 md:px-16 lg:px-24 py-20 md:py-32 overflow-hidden">
+        {/* Glow detrás del texto */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-[700px] h-[320px] rounded-full opacity-20"
+            style={{ background: "radial-gradient(ellipse,#c4b5fd 0%,transparent 70%)", filter: "blur(80px)" }}/>
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <p className="font-hand text-4xl md:text-5xl lg:text-6xl text-gray-700 leading-snug mb-3">
+            todos ven algo diferente.
+          </p>
+          <p className="font-hand text-5xl md:text-6xl lg:text-7xl leading-snug mb-14"
+            style={{
+              background: "linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,#db2777 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}>
+            ¿tú qué ves?
+          </p>
+          <a href="/galeria"
+            className="inline-block font-hand text-lg md:text-xl px-10 py-4 rounded-2xl text-white transition-all duration-200 hover:-translate-y-1 active:scale-95"
+            style={{
+              background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
+              boxShadow: "0 8px 28px rgba(79,70,229,0.35)",
+            }}>
             ver la mancha de hoy →
           </a>
         </div>
       </section>
 
-      {/* ── Contadores animados ── */}
+      {/* ── CONTADORES ── */}
       <Contadores />
 
-      {/* ── Footer ── */}
-      <footer className="py-6 px-6 bg-white text-center font-hand text-sm text-gray-300">
-        PLOP — una mancha nueva cada día
+      {/* ── FOOTER ── */}
+      <footer className="relative z-10 py-8 px-6 text-center border-t border-gray-100">
+        <p className="font-hand text-sm text-gray-300">PLOP — una mancha nueva cada día</p>
       </footer>
+
     </div>
   );
 }
