@@ -1,74 +1,153 @@
-import Link from "next/link";
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function Login() {
+  const router = useRouter();
+  const [nombre, setNombre] = useState("");
+  const [error, setError] = useState(false);
+
+  function handleEntrar() {
+    if (nombre.trim() === "") {
+      setError(true);
+      setTimeout(() => setError(false), 600);
+      return;
+    }
+    localStorage.setItem("plop_nombre", nombre.trim());
+    router.push("/inicio");
+  }
+
   return (
-    <section className="min-h-screen bg-[#1E1B4B] flex items-center justify-center px-6 relative overflow-hidden">
-      {/* Ink blot atmosphere */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-[500px] h-[500px] bg-[#312E81] rounded-full blur-3xl opacity-50" />
-        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-[#4338CA] rounded-full blur-3xl opacity-40" />
-        <div className="absolute top-1/3 left-1/4 w-64 h-64 bg-[#6366F1] rounded-full blur-3xl opacity-20" />
+    <main className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#07051A]">
+
+      {/* ── Fondo / glows ── */}
+      <div className="pointer-events-none absolute inset-0">
+        <div
+          className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full opacity-40"
+          style={{ background: "radial-gradient(ellipse, #4F46E5 0%, transparent 70%)", filter: "blur(80px)" }}
+        />
+        <div
+          className="absolute -bottom-40 -left-20 w-[500px] h-[500px] rounded-full opacity-25"
+          style={{ background: "radial-gradient(ellipse, #7C3AED 0%, transparent 70%)", filter: "blur(100px)" }}
+        />
+        <div
+          className="absolute top-1/2 -right-20 w-[400px] h-[400px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(ellipse, #3B82F6 0%, transparent 70%)", filter: "blur(80px)" }}
+        />
       </div>
 
-      {/* Floating ink dots */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[15%] left-[10%] w-3 h-3 bg-indigo-400/30 rounded-full" />
-        <div className="absolute top-[25%] right-[20%] w-2 h-2 bg-blue-400/20 rounded-full" />
-        <div className="absolute bottom-[30%] left-[15%] w-4 h-4 bg-indigo-300/20 rounded-full" />
-        <div className="absolute bottom-[20%] right-[10%] w-2 h-2 bg-blue-300/25 rounded-full" />
-        <div className="absolute top-[50%] left-[50%] w-1.5 h-1.5 bg-indigo-200/20 rounded-full" />
+      {/* ── Partículas ── */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-[12%]  left-[8%]    w-1.5 h-1.5 rounded-full bg-indigo-400/40" />
+        <div className="absolute top-[22%]  right-[14%]  w-1   h-1   rounded-full bg-violet-400/30" />
+        <div className="absolute top-[60%]  left-[6%]    w-2   h-2   rounded-full bg-indigo-300/20" />
+        <div className="absolute bottom-[18%] right-[8%] w-1.5 h-1.5 rounded-full bg-blue-400/30" />
+        <div className="absolute bottom-[35%] left-[18%] w-1   h-1   rounded-full bg-violet-300/25" />
+        <div className="absolute top-[45%]  right-[22%]  w-1   h-1   rounded-full bg-indigo-200/20" />
       </div>
 
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Octopus + Brand */}
-        <div className="text-center mb-10">
-          <div className="relative inline-block">
-            <Image
-              src="/Pulpito.png"
-              alt=""
-              width={140}
-              height={140}
-              className="mx-auto mb-3 opacity-85 drop-shadow-2xl"
-            />
-          </div>
-          <h1 className="font-display text-6xl md:text-7xl text-white rotate-[-1deg] leading-none">
-            PLOP
-          </h1>
-          <p className="font-hand text-base md:text-lg text-indigo-300/80 mt-2">
-            una mancha nueva cada d&iacute;a
-          </p>
+      {/* ── Contenido ── */}
+      <div className="relative z-10 w-full max-w-[400px] px-6 flex flex-col items-center">
+
+        {/* Pulpo + aura */}
+        <div className="relative mb-5 flex items-center justify-center">
+          <div
+            className="absolute w-56 h-56 rounded-full opacity-50"
+            style={{
+              background: "radial-gradient(circle, rgba(99,102,241,0.6) 0%, transparent 70%)",
+              filter: "blur(32px)",
+            }}
+          />
+          <Image
+            src="/Pulpito.png"
+            alt="PLOP mascot"
+            width={170}
+            height={170}
+            className="relative drop-shadow-2xl"
+            style={{ filter: "drop-shadow(0 0 24px rgba(99,102,241,0.5))" }}
+          />
         </div>
 
-        {/* Card */}
-        <div
-          className="hand-border p-8 backdrop-blur-md"
+        {/* Título */}
+        <h1
+          className="font-display text-7xl text-white leading-none tracking-wide"
           style={{
-            borderRadius: "20px 24px 16px 28px",
-            backgroundColor: "rgba(255,255,255,0.06)",
+            textShadow: "0 0 40px rgba(99,102,241,0.7), 0 0 80px rgba(99,102,241,0.3)",
+            WebkitTextStroke: "1px rgba(129,140,248,0.4)",
           }}
         >
-          <label className="font-hand text-base text-indigo-200/90 block mb-2">
-            &iquest;c&oacute;mo te llamas?
-          </label>
-          <input
-            type="text"
-            placeholder="tu nombre..."
-            className="w-full border-2 border-white/15 px-4 py-3 text-white font-hand text-base placeholder:text-indigo-300/40 outline-none transition-colors focus:border-blue-400/60"
-            style={{ borderRadius: "12px 16px 10px 14px", backgroundColor: "rgba(255,255,255,0.04)" }}
-          />
-          <Link
-            href="/inicio"
-            className="hand-border-thick bg-black text-white font-hand text-lg w-full py-3 mt-5 block text-center transition-all duration-150 hover:bg-gray-800 active:scale-95"
-            style={{ borderRadius: "14px 18px 12px 16px", transform: "rotate(-0.3deg)" }}
+          PLOP
+        </h1>
+
+        {/* Tagline */}
+        <p className="font-hand text-indigo-300/85 text-lg mt-3 mb-12 tracking-wide">
+          una mancha nueva cada día
+        </p>
+
+        {/* Formulario */}
+        <div className="w-full space-y-4">
+
+          <div className="space-y-2">
+            <label className="block font-hand text-indigo-200/90 text-lg pl-1">
+              ¿cómo te llamas?
+            </label>
+
+            {/* Input con animación de shake cuando está vacío */}
+            <input
+              type="text"
+              placeholder="tu nombre..."
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleEntrar()}
+              className="w-full rounded-2xl px-5 py-4 text-white font-hand text-lg placeholder:text-white/40 outline-none transition-all duration-200 bg-white/5 border focus:ring-2 focus:ring-indigo-500/20"
+              style={{
+                border: error
+                  ? "1px solid rgba(239,68,68,0.8)"
+                  : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: error ? "0 0 0 3px rgba(239,68,68,0.2)" : "none",
+                animation: error ? "shake 0.4s ease" : "none",
+              }}
+            />
+
+            {/* Mensaje de error */}
+            <p
+              className="font-hand text-red-400 text-sm pl-1 transition-all duration-200"
+              style={{ opacity: error ? 1 : 0, transform: error ? "translateY(0)" : "translateY(-4px)" }}
+            >
+              escribe tu nombre para continuar
+            </p>
+          </div>
+
+          {/* Botón */}
+          <button
+            onClick={handleEntrar}
+            className="block w-full font-hand text-xl text-white text-center py-4 rounded-2xl transition-all duration-200 active:scale-[0.97] hover:-translate-y-0.5 cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+              boxShadow: "0 8px 32px rgba(79,70,229,0.45), 0 2px 8px rgba(0,0,0,0.4)",
+            }}
           >
-            entrar
-          </Link>
-          <p className="font-hand text-xs text-indigo-300/40 text-center mt-4">
-            sin registro, sin correo. solo dibuja.
+            entrar →
+          </button>
+
+          <p className="font-hand text-white/50 text-base text-center pt-1">
+            sin registro · sin correo · solo dibuja
           </p>
         </div>
       </div>
-    </section>
+
+      {/* Animación shake */}
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20%       { transform: translateX(-6px); }
+          40%       { transform: translateX(6px); }
+          60%       { transform: translateX(-4px); }
+          80%       { transform: translateX(4px); }
+        }
+      `}</style>
+    </main>
   );
 }
