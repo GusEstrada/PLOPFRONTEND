@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Saludo from "./Saludo";
 
 export default function NavBar() {
@@ -21,7 +22,7 @@ export default function NavBar() {
       }}
     >
       <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <span className="font-display text-2xl rotate-[-0.5deg] text-gray-900 select-none">PLOP</span>
+        <Link href="/inicio" className="font-display text-2xl rotate-[-0.5deg] text-gray-900 select-none hover:opacity-70 transition-opacity">PLOP</Link>
         <div className="flex items-center gap-5">
           <a href="/dibujar" className="font-hand text-base text-gray-400 hover:text-gray-800 transition-colors">dibujar</a>
           <a href="/galeria" className="font-hand text-base text-gray-400 hover:text-gray-800 transition-colors">galería</a>
