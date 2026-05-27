@@ -8,6 +8,7 @@ import { InkBlotSVG, defaultBlotData } from "./inkblot";
 import type { BlotData } from "./inkblot";
 import type { ImageTransform } from "./KonvaCanvas";
 import Toolbar from "./toolbar";
+import NavBar from "../inicio/NavBar";
 import { apiFetch } from "@/lib/api";
 
 const KonvaCanvas = dynamic(() => import("./KonvaCanvas"), { ssr: false });
@@ -18,6 +19,7 @@ export default function Dibujar() {
   const [color, setColor] = useState("#000000");
   const [size, setSize] = useState(5);
   const [dims, setDims] = useState({ w: 800, h: 600 });
+  const [animIn, setAnimIn] = useState(false);
   const [blot, setBlot] = useState<BlotData | undefined>(undefined);
   const [blotId, setBlotId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
@@ -26,11 +28,23 @@ export default function Dibujar() {
   const undoRef = useRef<(() => void) | null>(null);
   const clearRef = useRef<(() => void) | null>(null);
   const linesRef = useRef<any[]>([]);
-  const imageTransformRef = useRef<ImageTransform>({ offsetX: 0, offsetY: 0, scale: 1, imgW: 800, imgH: 600 });
+  const imageTransformRef = useRef<ImageTransform>({
+    offsetX: 0, offsetY: 0, scale: 1, imgW: 800, imgH: 600,
+  });
 
   useEffect(() => {
-    apiFetch<{ id: string; mainBlot: number[]; satellites: { x: number; y: number; r: number }[]; imageUrl?: string }>("/blot/today")
-      .then(data => {
+    const t = setTimeout(() => setAnimIn(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    apiFetch<{
+      id: string;
+      mainBlot: number[];
+      satellites: { x: number; y: number; r: number }[];
+      imageUrl?: string;
+    }>("/blot/today")
+      .then((data) => {
         setBlot({ mainBlot: data.mainBlot ?? [], satellites: data.satellites ?? [] });
         setBlotId(data.id);
         if (data.imageUrl) setImageUrl(data.imageUrl);
@@ -77,62 +91,112 @@ export default function Dibujar() {
 
   if (phase === "idle") {
     return (
-      <div className="min-h-screen bg-[#07051A] flex items-center justify-center px-6 relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0">
+      <div className="min-h-screen bg-[#FFFDF7] flex flex-col relative overflow-hidden">
+        <div className="pointer-events-none fixed inset-0 overflow-hidden">
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[600px] rounded-full opacity-30"
-            style={{ background: "radial-gradient(ellipse, #4F46E5 0%, transparent 65%)", filter: "blur(90px)" }}
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[600px] rounded-full opacity-20"
+            style={{ background: "radial-gradient(ellipse,#fde68a 0%,transparent 65%)", filter: "blur(90px)" }}
           />
           <div
-            className="absolute -bottom-40 -left-20 w-[500px] h-[500px] rounded-full opacity-20"
-            style={{ background: "radial-gradient(ellipse, #7C3AED 0%, transparent 70%)", filter: "blur(80px)" }}
+            className="absolute bottom-0 left-1/4 w-[500px] h-[500px] rounded-full opacity-10"
+            style={{ background: "radial-gradient(ellipse,#ddd6fe 0%,transparent 70%)", filter: "blur(80px)" }}
+          />
+          <div
+            className="absolute top-1/3 right-0 w-[400px] h-[400px] rounded-full opacity-10"
+            style={{ background: "radial-gradient(ellipse,#fca5a5 0%,transparent 70%)", filter: "blur(80px)" }}
           />
         </div>
 
-        <div className="relative z-10 text-center">
-          <div className="mb-8 animate-[pulse_4s_ease-in-out_infinite] flex justify-center" style={{ filter: "drop-shadow(0 0 30px rgba(99,102,241,0.5))" }}>
-            {imageUrl ? (
-              <img src={imageUrl} alt="mancha de hoy" className="w-48 h-40 md:w-64 md:h-56 object-contain opacity-70" />
-            ) : (
-              <InkBlotSVG className="w-48 h-40 md:w-64 md:h-56 mx-auto opacity-50" blot={blot} />
-            )}
-          </div>
+        <NavBar />
 
-          <h1
-            className="font-display text-5xl md:text-7xl text-white rotate-[-1deg] leading-none mb-3"
-            style={{ textShadow: "0 0 40px rgba(99,102,241,0.6)" }}
-          >
-            mancha de hoy
-          </h1>
-          <p className="font-hand text-base md:text-lg text-indigo-300/70 mb-10">
-            mirá la mancha. dibujá lo que ves.
-          </p>
-
-          <button
-            onClick={() => setPhase("drawing")}
-            className="font-hand text-xl md:text-2xl px-12 py-4 inline-block text-white transition-all duration-200 hover:-translate-y-1 hover:scale-105 active:scale-95"
+        <div className="flex-1 flex items-center justify-center px-6">
+          <div
+            className="relative z-10 text-center flex flex-col items-center"
             style={{
-              background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
-              borderRadius: "18px 22px 14px 26px",
-              boxShadow: "0 8px 40px rgba(79,70,229,0.5)",
-              transform: "rotate(-0.5deg)",
+              opacity: animIn ? 1 : 0,
+              transform: animIn ? "translateY(0)" : "translateY(18px)",
+              transition: "opacity 0.6s ease, transform 0.6s ease",
             }}
           >
-            PLAY ▶
-          </button>
+            <span
+              className="font-hand text-sm text-indigo-500 px-4 py-1.5 rounded-full mb-10"
+              style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}
+            >
+              ✦ mancha de hoy
+            </span>
 
-          <div className="mt-8">
-            <Link href="/inicio" className="font-hand text-sm text-indigo-400/50 hover:text-indigo-300 transition-colors">
-              ← volver al inicio
-            </Link>
+            <div className="relative mb-6">
+              <div
+                className="absolute inset-0 -m-8 rounded-full"
+                style={{
+                  background: "radial-gradient(ellipse, rgba(99,102,241,0.15) 0%, transparent 70%)",
+                  filter: "blur(24px)",
+                }}
+              />
+              <div style={{ animation: "floatBlot 6s ease-in-out infinite" }}>
+                {imageUrl ? (
+                  <img src={imageUrl} alt="mancha de hoy" className="w-44 h-36 md:w-64 md:h-56 object-contain opacity-90" />
+                ) : (
+                  <InkBlotSVG className="w-44 h-36 md:w-64 md:h-52 mx-auto opacity-90 drop-shadow-md" blot={blot} />
+                )}
+              </div>
+            </div>
+
+            <h1
+              className="font-display text-5xl md:text-7xl text-gray-900 leading-none mb-3"
+              style={{ transform: "rotate(-1deg)", letterSpacing: "-0.01em" }}
+            >
+              mancha de hoy
+            </h1>
+
+            <p className="font-hand text-lg md:text-xl text-gray-400 mb-12 leading-relaxed">
+              mirá la mancha.{" "}
+              <span className="text-indigo-400">dibujá lo que ves.</span>
+            </p>
+
+            <button
+              onClick={() => setPhase("drawing")}
+              className="group relative font-hand text-xl md:text-2xl px-14 py-4 text-white transition-all duration-200 hover:-translate-y-1 hover:scale-105 active:scale-95"
+              style={{
+                background: "linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)",
+                borderRadius: "20px 24px 16px 28px",
+                boxShadow: "0 10px 40px rgba(79,70,229,0.35), 0 2px 0 rgba(255,255,255,0.1) inset",
+                transform: "rotate(-0.5deg)",
+              }}
+            >
+              <span
+                className="absolute inset-0 rounded-[inherit] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%)" }}
+              />
+              <span className="relative flex items-center gap-3">
+                <span
+                  className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-base"
+                  style={{ boxShadow: "0 0 0 2px rgba(255,255,255,0.2)" }}
+                >
+                  ▶
+                </span>
+                PLAY
+              </span>
+            </button>
+
+            <p className="font-hand text-xs text-gray-300 mt-6">
+              no hay respuesta incorrecta ✦ solo tu imaginación
+            </p>
           </div>
         </div>
+
+        <style>{`
+          @keyframes floatBlot {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50%       { transform: translateY(-10px) rotate(1deg); }
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#FAFAFA] flex flex-col-reverse md:flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-[#FFFDF7] flex flex-col-reverse md:flex-row">
       <Toolbar
         color={color}
         setColor={setColor}
