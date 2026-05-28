@@ -6,6 +6,7 @@ import Link from "next/link";
 import NavBar from "@/app/inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
 import { computeBounds } from "@/app/dibujar/inkblot";
+import { AchievementToast, useAchievementToast } from "@/app/components/AchievementToast";
 
 interface LineData {
   id: number;
@@ -142,10 +143,11 @@ function BlotBadge({ blot }: { blot?: Drawing["blot"] }) {
   return null;
 }
 
-function UserDetailModal({ drawing, onClose, currentUser }: {
+function UserDetailModal({ drawing, onClose, currentUser, onNewAchievements }: {
   drawing: Drawing;
   onClose: () => void;
   currentUser: { id: string; name: string } | null;
+  onNewAchievements: (achievements: any[]) => void;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -182,8 +184,11 @@ function UserDetailModal({ drawing, onClose, currentUser }: {
         await apiFetch(`/gallery/${drawing.id}/like`, { method: "DELETE" });
         setLikesCount(prev => prev - 1);
       } else {
-        await apiFetch(`/gallery/${drawing.id}/like`, { method: "POST" });
+        const res = await apiFetch<{ liked: boolean; newAchievements: any[] }>(`/gallery/${drawing.id}/like`, { method: "POST" });
         setLikesCount(prev => prev + 1);
+        if (res.newAchievements?.length > 0) {
+          onNewAchievements(res.newAchievements);
+        }
       }
       setHasLiked(!hasLiked);
     } catch {}
@@ -194,12 +199,15 @@ function UserDetailModal({ drawing, onClose, currentUser }: {
     if (!currentUser || !commentText.trim() || sending) return;
     setSending(true);
     try {
-      const newComment = await apiFetch<Comment>(`/gallery/${drawing.id}/comments`, {
+      const res = await apiFetch<{ comment: Comment; newAchievements: any[] }>(`/gallery/${drawing.id}/comments`, {
         method: "POST",
         body: { content: commentText.trim() },
       });
-      setComments(prev => [...prev, newComment]);
+      setComments(prev => [...prev, res.comment]);
       setCommentText("");
+      if (res.newAchievements?.length > 0) {
+        onNewAchievements(res.newAchievements);
+      }
     } catch {}
     setSending(false);
   }
@@ -285,6 +293,8 @@ export default function UsuarioPage() {
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const { queue: toastQueue, push: pushToast, dismiss: dismissToast } = useAchievementToast();
 
   useEffect(() => {
     if (!userId) return;
@@ -292,10 +302,12 @@ export default function UsuarioPage() {
     Promise.all([
       apiFetch<UserProfile>(`/profile/${userId}`),
       apiFetch<Drawing[]>(`/drawings/user/${userId}`),
+      apiFetch<any[]>(`/achievements/${userId}`),
     ])
-      .then(([p, d]) => {
+      .then(([p, d, a]) => {
         setProfile(p);
         setDrawings(d);
+        setAchievements(a);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -308,6 +320,7 @@ export default function UsuarioPage() {
           drawing={selectedDrawing}
           onClose={() => setSelectedDrawing(null)}
           currentUser={currentUser}
+          onNewAchievements={(a) => a.forEach(pushToast)}
         />
       )}
 
@@ -387,9 +400,42 @@ export default function UsuarioPage() {
             ) : (
               <p className="font-hand text-base text-gray-400 py-10 text-center">todavía no hay dibujos</p>
             )}
+
+            {/* ── Logros ── */}
+            <div className="mt-12">
+              <div className="flex items-baseline gap-3 mb-6">
+                <h2 className="font-display text-3xl md:text-4xl text-gray-900">✦ logros</h2>
+                <span className="font-hand text-base text-gray-400">{achievements.length} desbloqueado{achievements.length !== 1 ? "s" : ""}</span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {achievements.map(a => {
+                  const isImage = a.iconUrl && a.iconUrl.startsWith("/");
+                  return (
+                    <div key={a.code}
+                      className="flex flex-col items-center justify-center gap-2 rounded-2xl p-5 bg-white"
+                      style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+                      {isImage ? (
+                        <img src={a.iconUrl} alt="" className="w-8 h-8 object-contain" />
+                      ) : (
+                        <span className="text-3xl">{a.icon || a.iconUrl || "🏆"}</span>
+                      )}
+                      <span className="font-hand text-xs text-gray-700 text-center leading-tight">{a.title}</span>
+                    </div>
+                  );
+                })}
+                {achievements.length === 0 && (
+                  <p className="font-hand text-sm text-gray-400 col-span-full text-center py-4">
+                    este artista todavía no tiene logros
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
+      {toastQueue.map(a => (
+        <AchievementToast key={a.id} item={a} onDismiss={dismissToast} />
+      ))}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import NavBar from "@/app/inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
 import { computeBounds } from "@/app/dibujar/inkblot";
+import { AchievementToast, useAchievementToast } from "@/app/components/AchievementToast";
 
 interface CatalogItem {
   type: "head" | "eyes" | "mouth" | "acc";
@@ -163,11 +164,12 @@ function BlotBadge({ blot }: { blot?: Drawing["blot"] }) {
   return null;
 }
 
-function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted }: {
+function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted, onNewAchievements }: {
   drawing: Drawing;
   onClose: () => void;
   currentUser: { id: string; name: string } | null;
   onDrawingDeleted: (drawingId: string) => void;
+  onNewAchievements: (achievements: any[]) => void;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -204,8 +206,11 @@ function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted }: {
         await apiFetch(`/gallery/${drawing.id}/like`, { method: "DELETE" });
         setLikesCount(prev => prev - 1);
       } else {
-        await apiFetch(`/gallery/${drawing.id}/like`, { method: "POST" });
+        const res = await apiFetch<{ liked: boolean; newAchievements: any[] }>(`/gallery/${drawing.id}/like`, { method: "POST" });
         setLikesCount(prev => prev + 1);
+        if (res.newAchievements?.length > 0) {
+          onNewAchievements(res.newAchievements);
+        }
       }
       setHasLiked(!hasLiked);
     } catch {}
@@ -216,12 +221,15 @@ function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted }: {
     if (!currentUser || !commentText.trim() || sending) return;
     setSending(true);
     try {
-      const newComment = await apiFetch<Comment>(`/gallery/${drawing.id}/comments`, {
+      const res = await apiFetch<{ comment: Comment; newAchievements: any[] }>(`/gallery/${drawing.id}/comments`, {
         method: "POST",
         body: { content: commentText.trim() },
       });
-      setComments(prev => [...prev, newComment]);
+      setComments(prev => [...prev, res.comment]);
       setCommentText("");
+      if (res.newAchievements?.length > 0) {
+        onNewAchievements(res.newAchievements);
+      }
     } catch {}
     setSending(false);
   }
@@ -357,9 +365,11 @@ export default function Perfil() {
   const [editingBio, setEditingBio] = useState(false);
   const [userDrawings, setUserDrawings] = useState<Drawing[]>([]);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const user = useMemo(() => getUser(), []);
+  const { queue: toastQueue, push: pushToast, dismiss: dismissToast } = useAchievementToast();
 
   const heads    = catalog.filter(i => i.type === "head");
   const eyesList = catalog.filter(i => i.type === "eyes");
@@ -411,6 +421,10 @@ export default function Perfil() {
 
     apiFetch<Drawing[]>(`/drawings/user/${user.id}`)
       .then(setUserDrawings)
+      .catch(() => {});
+
+    apiFetch<any[]>(`/achievements/${user.id}`)
+      .then(setAchievements)
       .catch(() => {});
 
   }, [user]);
@@ -632,23 +646,30 @@ export default function Perfil() {
         <div>
           <div className="flex items-baseline gap-3 mb-6">
             <h2 className="font-display text-3xl md:text-4xl text-gray-900">✦ logros</h2>
-            <span className="font-hand text-base text-gray-400">pronto...</span>
+            <span className="font-hand text-base text-gray-400">{achievements.length} desbloqueado{achievements.length !== 1 ? "s" : ""}</span>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl p-5 bg-white/60"
-                style={{ border: "1px solid rgba(0,0,0,0.04)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
-              >
-                <span className="text-3xl opacity-20">🏆</span>
-                <span className="font-hand text-xs text-gray-300">???</span>
-              </div>
-            ))}
+            {achievements.map(a => {
+              const isImage = a.iconUrl && a.iconUrl.startsWith("/");
+              return (
+                <div key={a.code}
+                  className="flex flex-col items-center justify-center gap-2 rounded-2xl p-5 bg-white"
+                  style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+                  {isImage ? (
+                    <img src={a.iconUrl} alt="" className="w-8 h-8 object-contain" />
+                  ) : (
+                    <span className="text-3xl">{a.icon || a.iconUrl || "🏆"}</span>
+                  )}
+                  <span className="font-hand text-xs text-gray-700 text-center leading-tight">{a.title}</span>
+                </div>
+              );
+            })}
+            {achievements.length === 0 && (
+              <p className="font-hand text-sm text-gray-400 col-span-full text-center py-4">
+                todavía no tienes logros. dibuja, da likes, comenta...
+              </p>
+            )}
           </div>
-          <p className="font-hand text-sm text-gray-300 mt-4 text-center">
-            pronto habrá logros por aquí...
-          </p>
         </div>
 
       </div>
@@ -659,8 +680,12 @@ export default function Perfil() {
           onClose={() => setSelectedDrawing(null)}
           currentUser={user}
           onDrawingDeleted={(id) => setUserDrawings(prev => prev.filter(d => d.id !== id))}
+          onNewAchievements={(a) => a.forEach(pushToast)}
         />
       )}
+      {toastQueue.map(a => (
+        <AchievementToast key={a.id} item={a} onDismiss={dismissToast} />
+      ))}
     </div>
   );
 }

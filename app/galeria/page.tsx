@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import NavBar from "../inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
 import { computeBounds } from "@/app/dibujar/inkblot";
+import { AchievementToast, useAchievementToast } from "@/app/components/AchievementToast";
 
 interface User {
   id: string;
@@ -149,6 +150,7 @@ function DetailModal({
   onCommentAdded,
   onCommentDeleted,
   onDrawingDeleted,
+  onNewAchievements,
   isLiked,
 }: {
   drawing: Drawing;
@@ -158,6 +160,7 @@ function DetailModal({
   onCommentAdded: (drawingId: string) => void;
   onCommentDeleted: (drawingId: string) => void;
   onDrawingDeleted: (drawingId: string) => void;
+  onNewAchievements: (achievements: any[]) => void;
   isLiked: boolean;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -184,13 +187,16 @@ function DetailModal({
     if (!currentUser || !commentText.trim() || sending) return;
     setSending(true);
     try {
-      const newComment = await apiFetch<Comment>(`/gallery/${drawing.id}/comments`, {
+      const res = await apiFetch<{ comment: Comment; newAchievements: any[] }>(`/gallery/${drawing.id}/comments`, {
         method: "POST",
         body: { content: commentText.trim() },
       });
-      setComments(prev => [...prev, newComment]);
+      setComments(prev => [...prev, res.comment]);
       setCommentText("");
       onCommentAdded(drawing.id);
+      if (res.newAchievements?.length > 0) {
+        onNewAchievements(res.newAchievements);
+      }
     } catch {}
     setSending(false);
   }
@@ -332,6 +338,7 @@ export default function Galeria() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const currentUser = getUser();
+  const { queue: toastQueue, push: pushToast, dismiss: dismissToast } = useAchievementToast();
 
   // Derive the selected drawing reactively from the drawings array
   const selectedDrawing = drawings.find(d => d.id === selectedId) ?? null;
@@ -358,8 +365,11 @@ export default function Galeria() {
         await apiFetch(`/gallery/${drawingId}/like`, { method: "DELETE" });
         setLikedIds(prev => { const s = new Set(prev); s.delete(drawingId); return s; });
       } else {
-        await apiFetch(`/gallery/${drawingId}/like`, { method: "POST" });
+        const res = await apiFetch<{ liked: boolean; newAchievements: any[] }>(`/gallery/${drawingId}/like`, { method: "POST" });
         setLikedIds(prev => new Set(prev).add(drawingId));
+        if (res.newAchievements?.length > 0) {
+          res.newAchievements.forEach(pushToast);
+        }
       }
       setDrawings(prev =>
         prev.map(d =>
@@ -393,6 +403,7 @@ export default function Galeria() {
           onCommentAdded={(id) => handleCommentCountChange(id, 1)}
           onCommentDeleted={(id) => handleCommentCountChange(id, -1)}
           onDrawingDeleted={handleDrawingDeleted}
+          onNewAchievements={(a) => a.forEach(pushToast)}
           isLiked={likedIds.has(selectedDrawing.id)}
         />
       )}
@@ -508,6 +519,9 @@ export default function Galeria() {
           )}
         </div>
       )}
+      {toastQueue.map(a => (
+        <AchievementToast key={a.id} item={a} onDismiss={dismissToast} />
+      ))}
     </div>
   );
 }

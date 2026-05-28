@@ -10,6 +10,7 @@ import type { ImageTransform } from "./KonvaCanvas";
 import Toolbar from "./toolbar";
 import NavBar from "../inicio/NavBar";
 import { apiFetch } from "@/lib/api";
+import { AchievementToast, useAchievementToast } from "@/app/components/AchievementToast";
 
 const KonvaCanvas = dynamic(() => import("./KonvaCanvas"), { ssr: false });
 
@@ -38,6 +39,7 @@ export default function Dibujar() {
   const imageTransformRef = useRef<ImageTransform>({
     offsetX: 0, offsetY: 0, scale: 1, imgW: 800, imgH: 600,
   });
+  const { queue: toastQueue, push: pushToast, dismiss: dismissToast } = useAchievementToast();
 
   useEffect(() => {
     const t = setTimeout(() => setAnimIn(true), 80);
@@ -91,12 +93,15 @@ export default function Dibujar() {
           i % 2 === 0 ? (p - offsetX) / scale : (p - offsetY) / scale
         ),
       }));
-      await apiFetch("/drawings", {
+      const res = await apiFetch<{ drawing: any; newAchievements: any[] }>("/drawings", {
         method: "POST",
         body: { blotId, lines },
       });
+      if (res.newAchievements?.length > 0) {
+        res.newAchievements.forEach(pushToast);
+      }
       setSaved(true);
-      setTimeout(() => router.push("/galeria"), 1500);
+      setTimeout(() => router.push("/galeria"), 2000);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Error al guardar. Intenta de nuevo.");
     }
@@ -244,6 +249,9 @@ export default function Dibujar() {
           imageTransformRef={imageTransformRef}
         />
       </div>
+      {toastQueue.map(a => (
+        <AchievementToast key={a.id} item={a} onDismiss={dismissToast} />
+      ))}
     </div>
   );
 }
