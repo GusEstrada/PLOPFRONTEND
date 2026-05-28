@@ -239,12 +239,6 @@ export default function Dibujar() {
           imageUrl={imageUrl}
           imageTransformRef={imageTransformRef}
         />
-        <Link
-          href="/inicio"
-          className="hidden md:inline absolute top-3 left-3 z-20 font-display text-xl text-gray-400 hover:text-black transition-colors rotate-[-0.5deg]"
-        >
-          PLOP
-        </Link>
       </div>
     </div>
   );

@@ -50,6 +50,7 @@ export async function apiFetch<T = unknown>(
     if (res.status === 401) {
       clearToken();
       removeUser();
+      if (typeof window !== "undefined") window.location.href = "/";
     }
     const err = await res.json().catch(() => ({ error: "Error de conexión" }));
     throw new Error(err.error || `Error ${res.status}`);

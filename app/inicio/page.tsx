@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "./NavBar";
@@ -61,16 +62,16 @@ export default function Inicio() {
         </p>
 
         <div className="flex flex-wrap gap-3 mt-8 justify-center">
-          <a href="/dibujar"
+          <Link href="/dibujar"
             className="font-hand text-lg md:text-xl px-8 py-3.5 rounded-2xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95"
             style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)", boxShadow: "0 8px 28px rgba(79,70,229,0.4)" }}>
             dibujar ahora
-          </a>
-          <a href="/galeria"
+          </Link>
+          <Link href="/galeria"
             className="font-hand text-lg md:text-xl px-8 py-3.5 rounded-2xl text-indigo-600 transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-50 active:scale-95"
             style={{ border: "1.5px solid rgba(99,102,241,0.3)", background: "rgba(99,102,241,0.04)" }}>
             explorar →
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -128,14 +129,14 @@ export default function Inicio() {
             }}>
             ¿tú qué ves?
           </p>
-          <a href="/dibujar"
+          <Link href="/dibujar"
             className="inline-block font-hand text-lg md:text-xl px-10 py-4 rounded-2xl text-white transition-all duration-200 hover:-translate-y-1 active:scale-95"
             style={{
               background: "linear-gradient(135deg,#4f46e5,#7c3aed)",
               boxShadow: "0 8px 28px rgba(79,70,229,0.35)",
             }}>
             ver la mancha de hoy →
-          </a>
+          </Link>
         </div>
       </section>
 

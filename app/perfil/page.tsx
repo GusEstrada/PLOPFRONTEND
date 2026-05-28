@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo, useId } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import NavBar from "@/app/inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
 import { InkBlotSVG, BlotData } from "@/app/dibujar/inkblot";
 
@@ -178,7 +178,6 @@ export default function Perfil() {
   const [totalLikes,  setTotalLikes]  = useState<number>(0);
   const [bio,        setBio]        = useState(BIO_DEFAULT);
   const [editingBio, setEditingBio] = useState(false);
-  const [scrolled,   setScrolled]   = useState(false);
   const [userDrawings, setUserDrawings] = useState<Drawing[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const user = useMemo(() => getUser(), []);
@@ -235,9 +234,6 @@ export default function Perfil() {
       .then(setUserDrawings)
       .catch(() => {});
 
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
   }, [user]);
 
   useEffect(() => {
@@ -292,18 +288,7 @@ export default function Perfil() {
           style={{ background: "radial-gradient(ellipse,#ddd6fe 0%,transparent 70%)", filter: "blur(80px)" }}/>
       </div>
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md border-b border-gray-100 px-6 md:px-16 lg:px-24 py-4 transition-shadow duration-200"
-        style={{ background: "rgba(255,253,247,0.92)", boxShadow: scrolled ? "0 4px 20px rgba(0,0,0,0.08)" : "none" }}>
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/inicio" className="font-display text-3xl rotate-[-1deg] text-gray-900 hover:text-indigo-600 transition-colors">
-            PLOP
-          </Link>
-          <Link href="/inicio" className="font-hand text-base text-gray-400 hover:text-gray-700 transition-colors">
-            ← inicio
-          </Link>
-        </div>
-      </header>
+      <NavBar />
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-16 lg:px-24 py-10 space-y-6">
 
@@ -444,7 +429,7 @@ export default function Perfil() {
           </div>
           {userDrawings.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {userDrawings.map((d, i) => (
+              {userDrawings.map((d) => (
                 <div key={d.id}
                   className="relative flex flex-col items-center justify-center bg-white rounded-2xl p-4 transition-all duration-200 hover:scale-[1.03]"
                   style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
