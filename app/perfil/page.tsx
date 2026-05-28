@@ -125,10 +125,11 @@ function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Draw
   const maxY = Math.max(...ys);
 
   const blotBounds = computeBounds(blot!.mainBlot);
-  const canvasW = 800, canvasH = 600;
-  const s = Math.min(canvasW / blotBounds.w, canvasH / blotBounds.h) * 0.6;
-  const cxCanvas = canvasW / 2 - ((blotBounds.minX + blotBounds.maxX) / 2) * s;
-  const cyCanvas = canvasH / 2 - ((blotBounds.minY + blotBounds.maxY) / 2) * s;
+  const estW = Math.max(...xs);
+  const estH = Math.max(...ys);
+  const s = Math.min(estW / blotBounds.w, estH / blotBounds.h) * 0.6;
+  const cxCanvas = estW / 2 - ((blotBounds.minX + blotBounds.maxX) / 2) * s;
+  const cyCanvas = estH / 2 - ((blotBounds.minY + blotBounds.maxY) / 2) * s;
 
   const scaledMainBlot = blot!.mainBlot.map((p, i) =>
     i % 2 === 0 ? p * s + cxCanvas : p * s + cyCanvas

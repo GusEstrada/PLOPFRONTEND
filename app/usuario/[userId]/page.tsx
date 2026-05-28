@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/app/inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
-import { InkBlotSVG, BlotData } from "@/app/dibujar/inkblot";
+import { computeBounds } from "@/app/dibujar/inkblot";
 
 interface LineData {
   id: number;
@@ -67,6 +67,7 @@ const cardRots = [
 ];
 
 function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"] }) {
+  const uid = useId();
   if (!lines || lines.length === 0) {
     return <p className="font-hand text-xs text-gray-500">vacío</p>;
   }
@@ -74,17 +75,33 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
   const ys = lines.flatMap(l => l.points.filter((_, i) => i % 2 === 1));
   if (xs.length === 0) return <p className="font-hand text-xs text-gray-500">vacío</p>;
 
+  const penLines = lines.filter(l => !l.tool || l.tool === "pen");
+  const eraserLines = lines.filter(l => l.tool === "eraser");
+  const maskId = `um-${uid}`;
   const blotImgW = 1001;
   const blotImgH = 1002;
 
   if (blot?.imageUrl) {
     return (
       <svg viewBox={`0 0 ${blotImgW} ${blotImgH}`} className="w-full h-full">
+        {eraserLines.length > 0 && (
+          <defs>
+            <mask id={maskId}>
+              <rect width={blotImgW} height={blotImgH} fill="white" />
+              {eraserLines.map(line => (
+                <polyline key={line.id} points={line.points.join(",")} stroke="black"
+                  strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              ))}
+            </mask>
+          </defs>
+        )}
         <image href={blot.imageUrl} width={blotImgW} height={blotImgH} opacity={0.3} />
-        {lines.map(line => (
-          <polyline key={line.id} points={line.points.join(",")} fill="none"
-            stroke={line.color} strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
-        ))}
+        <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
+          {penLines.map(line => (
+            <polyline key={line.id} points={line.points.join(",")} fill="none"
+              stroke={line.color} strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
+          ))}
+        </g>
       </svg>
     );
   }
@@ -93,20 +110,76 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
   const maxX = Math.max(...xs);
   const minY = Math.min(...ys);
   const maxY = Math.max(...ys);
+
+  const blotBounds = computeBounds(blot!.mainBlot);
+  const estW = Math.max(...xs);
+  const estH = Math.max(...ys);
+  const s = Math.min(estW / blotBounds.w, estH / blotBounds.h) * 0.6;
+  const cxCanvas = estW / 2 - ((blotBounds.minX + blotBounds.maxX) / 2) * s;
+  const cyCanvas = estH / 2 - ((blotBounds.minY + blotBounds.maxY) / 2) * s;
+
+  const scaledMainBlot = blot!.mainBlot.map((p, i) =>
+    i % 2 === 0 ? p * s + cxCanvas : p * s + cyCanvas
+  );
+
+  const blotX = scaledMainBlot.filter((_, i) => i % 2 === 0);
+  const blotY = scaledMainBlot.filter((_, i) => i % 2 === 1);
+  let bMinX = Math.min(...blotX);
+  let bMaxX = Math.max(...blotX);
+  let bMinY = Math.min(...blotY);
+  let bMaxY = Math.max(...blotY);
+
+  for (const sat of blot!.satellites) {
+    const sx = sat.x * s + cxCanvas;
+    const sy = sat.y * s + cyCanvas;
+    const sr = sat.r * s;
+    bMinX = Math.min(bMinX, sx - sr);
+    bMaxX = Math.max(bMaxX, sx + sr);
+    bMinY = Math.min(bMinY, sy - sr);
+    bMaxY = Math.max(bMaxY, sy + sr);
+  }
+
+  const uniMinX = Math.min(minX, bMinX);
+  const uniMaxX = Math.max(maxX, bMaxX);
+  const uniMinY = Math.min(minY, bMinY);
+  const uniMaxY = Math.max(maxY, bMaxY);
+  const uniW = uniMaxX - uniMinX || 1;
+  const uniH = uniMaxY - uniMinY || 1;
   const pad = 20;
 
+  const blotPathData = scaledMainBlot.reduce((acc, p, i, arr) => {
+    if (i % 2 === 1) {
+      const x = arr[i - 1];
+      const y = arr[i];
+      return i === 1 ? `M ${x} ${y}` : `${acc} L ${x} ${y}`;
+    }
+    return acc;
+  }, "");
+
   return (
-    <div className="relative w-full h-full">
-      {blot?.mainBlot && blot.mainBlot.length > 0 && (
-        <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none opacity-30" blot={blot as BlotData} />
+    <svg viewBox={`${uniMinX - pad} ${uniMinY - pad} ${uniW + pad * 2} ${uniH + pad * 2}`} className="w-full h-full">
+      <path d={`${blotPathData} Z`} fill="black" opacity={0.3} />
+      {blot!.satellites.map((sat, i) => (
+        <circle key={i} cx={sat.x * s + cxCanvas} cy={sat.y * s + cyCanvas} r={sat.r * s} fill="black" opacity={0.3} />
+      ))}
+      {eraserLines.length > 0 && (
+        <defs>
+          <mask id={maskId}>
+            <rect x={uniMinX - pad} y={uniMinY - pad} width={uniW + pad * 2} height={uniH + pad * 2} fill="white" />
+            {eraserLines.map(line => (
+              <polyline key={line.id} points={line.points.join(",")} stroke="black"
+                strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            ))}
+          </mask>
+        </defs>
       )}
-      <svg viewBox={`${minX - pad} ${minY - pad} ${(maxX - minX || 1) + pad * 2} ${(maxY - minY || 1) + pad * 2}`} className="absolute inset-0 w-full h-full">
-        {lines.map(line => (
+      <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
+        {penLines.map(line => (
           <polyline key={line.id} points={line.points.join(",")} fill="none"
             stroke={line.color} strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
         ))}
-      </svg>
-    </div>
+      </g>
+    </svg>
   );
 }
 
@@ -301,6 +374,14 @@ export default function UsuarioPage() {
             <div className="rounded-3xl p-7 md:p-9 bg-white"
               style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
               <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+                {profile.avatarConfig && (profile.avatarConfig.headUrl || profile.avatarConfig.eyesUrl || profile.avatarConfig.mouthUrl || profile.avatarConfig.accessoryUrl) && (
+                  <div className="relative shrink-0" style={{ width: 120, height: 120 }}>
+                    {profile.avatarConfig.headUrl && <img src={profile.avatarConfig.headUrl} alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />}
+                    {profile.avatarConfig.eyesUrl && <img src={profile.avatarConfig.eyesUrl} alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />}
+                    {profile.avatarConfig.mouthUrl && <img src={profile.avatarConfig.mouthUrl} alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />}
+                    {profile.avatarConfig.accessoryUrl && <img src={profile.avatarConfig.accessoryUrl} alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />}
+                  </div>
+                )}
                 <div className="shrink-0">
                   <span className="inline-block font-hand text-xs text-indigo-500 px-3 py-1 rounded-full mb-4"
                     style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}>
