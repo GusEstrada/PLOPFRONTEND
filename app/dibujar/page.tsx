@@ -77,6 +77,10 @@ export default function Dibujar() {
 
   const handleSave = useCallback(async () => {
     if (!blotId || saved) return;
+    if (linesRef.current.length === 0) {
+      setSaveError("dibuja algo primero");
+      return;
+    }
     setSaving(true);
     setSaveError("");
     try {

@@ -181,6 +181,7 @@ function DetailModal({
   onLike,
   onCommentAdded,
   onCommentDeleted,
+  onDrawingDeleted,
   isLiked,
 }: {
   drawing: Drawing;
@@ -189,6 +190,7 @@ function DetailModal({
   onLike: (drawingId: string, liked: boolean) => void;
   onCommentAdded: (drawingId: string) => void;
   onCommentDeleted: (drawingId: string) => void;
+  onDrawingDeleted: (drawingId: string) => void;
   isLiked: boolean;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -246,6 +248,15 @@ function DetailModal({
     if (e.target === overlayRef.current) onClose();
   }
 
+  async function handleDeleteDrawing() {
+    if (!confirm("¿Estás seguro de borrar este dibujo?")) return;
+    try {
+      await apiFetch(`/drawings/${drawing.id}`, { method: "DELETE" });
+      onDrawingDeleted(drawing.id);
+      onClose();
+    } catch {}
+  }
+
   return (
     <div
       ref={overlayRef}
@@ -258,7 +269,14 @@ function DetailModal({
           <span className="font-hand text-sm text-gray-500">
             {drawing.user.name} · {new Date(drawing.createdAt).toLocaleDateString("es-ES")}
           </span>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">✕</button>
+          <div className="flex items-center gap-3">
+            {currentUser?.id === drawing.user.id && (
+              <button onClick={handleDeleteDrawing} className="text-gray-300 hover:text-red-400 text-sm cursor-pointer">
+                🗑
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">✕</button>
+          </div>
         </div>
 
         <div className="p-6">
@@ -391,6 +409,10 @@ export default function Galeria() {
     );
   }
 
+  function handleDrawingDeleted(drawingId: string) {
+    setDrawings(prev => prev.filter(d => d.id !== drawingId));
+  }
+
   return (
     <div className="min-h-screen bg-[#FFFDF7] pb-16">
 
@@ -402,6 +424,7 @@ export default function Galeria() {
           onLike={toggleLike}
           onCommentAdded={(id) => handleCommentCountChange(id, 1)}
           onCommentDeleted={(id) => handleCommentCountChange(id, -1)}
+          onDrawingDeleted={handleDrawingDeleted}
           isLiked={likedIds.has(selectedDrawing.id)}
         />
       )}
