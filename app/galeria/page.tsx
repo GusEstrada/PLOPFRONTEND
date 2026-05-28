@@ -495,7 +495,8 @@ export default function Galeria() {
                     <InkPreview lines={d.lines} blot={d.blot} />
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="font-hand text-xs text-gray-700">{d.user.name}</span>
+                    <Link href={`/usuario/${d.user.id}`} onClick={e => e.stopPropagation()}
+                      className="font-hand text-xs text-gray-700 hover:text-indigo-500 transition-colors">{d.user.name}</Link>
                     <div className="flex items-center gap-2">
                       <span className="font-hand text-xs text-gray-500">💬 {d.commentsCount}</span>
                       <div className="flex items-center gap-1">
