@@ -196,7 +196,7 @@ export default function Dibujar() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#FFFDF7] flex flex-col-reverse md:flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-[#FFFDF7] flex flex-col md:flex-row">
       <Toolbar
         color={color}
         setColor={setColor}
@@ -223,7 +223,7 @@ export default function Dibujar() {
         />
         <Link
           href="/inicio"
-          className="absolute top-3 left-3 z-20 font-display text-xl text-gray-400 hover:text-black transition-colors rotate-[-0.5deg]"
+          className="hidden md:inline absolute top-3 left-3 z-20 font-display text-xl text-gray-400 hover:text-black transition-colors rotate-[-0.5deg]"
         >
           PLOP
         </Link>

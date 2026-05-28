@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const SIZES = [2, 5, 10, 18];
 const COLORS = ["#000000", "#2563EB", "#7C3AED", "#DC2626"];
 const SIZE_LABELS: Record<number, string> = { 2: "fino", 5: "medio", 10: "grueso", 18: "muy grueso" };
@@ -25,11 +27,19 @@ export default function Toolbar({
 }) {
   return (
     <div className="flex md:flex-col items-center justify-center gap-1 md:gap-5 p-2 md:p-5 bg-white/90 backdrop-blur-sm border-t-2 md:border-t-0 md:border-r-2 border-black flex-wrap">
-      {/* Subir — primero en móvil */}
+      {/* PLOP */}
+      <Link
+        href="/inicio"
+        className="font-display text-xl text-gray-400 hover:text-black transition-colors rotate-[-0.5deg] flex-shrink-0"
+      >
+        PLOP
+      </Link>
+
+      {/* Subir */}
       <button
         onClick={onSave}
         disabled={saving || saved}
-        className="order-first md:order-last font-hand text-xs px-2 py-1 md:text-sm md:px-4 md:py-2 rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:hover:translate-y-0"
+        className="md:order-last font-hand text-xs px-2 py-1 md:text-sm md:px-4 md:py-2 rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:hover:translate-y-0"
         style={{
           background: saved
             ? "linear-gradient(135deg, #059669, #10b981)"
