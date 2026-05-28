@@ -104,7 +104,7 @@ function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Draw
             </mask>
           </defs>
         )}
-        <image href={blot.imageUrl} width={blotImgW} height={blotImgH} />
+        <image href={blot.imageUrl} width={blotImgW} height={blotImgH} opacity={0.3} />
         <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
           {penLines.map(line => (
             <polyline
@@ -134,7 +134,7 @@ function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Draw
   return (
     <div className={`relative ${className ?? "w-full h-full"}`}>
       {blot?.mainBlot && blot.mainBlot.length > 0 && (
-        <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none" blot={blot as BlotData} />
+        <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none opacity-30" blot={blot as BlotData} />
       )}
       <svg viewBox={`${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`} className="absolute inset-0 w-full h-full">
         {eraserLines.length > 0 && (

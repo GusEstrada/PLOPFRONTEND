@@ -79,9 +79,8 @@ function Selector({ label, items, currentIdx, onPrev, onNext }: {
   );
 }
 
-function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"] }) {
+function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Drawing["blot"]; className?: string }) {
   const uid = useId();
-
   if (!lines || lines.length === 0) {
     return <p className="font-hand text-xs text-gray-500">vacío</p>;
   }
@@ -97,7 +96,7 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
 
   if (blot?.imageUrl) {
     return (
-      <svg viewBox={`0 0 ${blotImgW} ${blotImgH}`} className="w-full h-full">
+      <svg viewBox={`0 0 ${blotImgW} ${blotImgH}`} className={className ?? "w-full h-full"}>
         {eraserLines.length > 0 && (
           <defs>
             <mask id={maskId}>
@@ -109,7 +108,7 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
             </mask>
           </defs>
         )}
-        <image href={blot.imageUrl} width={blotImgW} height={blotImgH} />
+        <image href={blot.imageUrl} width={blotImgW} height={blotImgH} opacity={0.3} />
         <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
           {penLines.map(line => (
             <polyline key={line.id} points={line.points.join(",")} fill="none"
@@ -126,9 +125,9 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
   const maxY = Math.max(...ys);
   const pad = 20;
   return (
-    <div className="relative w-full h-full">
+    <div className={`relative ${className ?? "w-full h-full"}`}>
       {blot?.mainBlot && blot.mainBlot.length > 0 && (
-        <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none" blot={blot as BlotData} />
+        <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none opacity-30" blot={blot as BlotData} />
       )}
       <svg viewBox={`${minX - pad} ${minY - pad} ${(maxX - minX || 1) + pad * 2} ${(maxY - minY || 1) + pad * 2}`} className="absolute inset-0 w-full h-full">
         {eraserLines.length > 0 && (
@@ -149,6 +148,47 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
           ))}
         </g>
       </svg>
+    </div>
+  );
+}
+
+function ViewModal({ drawing, onClose }: { drawing: Drawing; onClose: () => void }) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  function handleOverlayClick(e: React.MouseEvent) {
+    if (e.target === overlayRef.current) onClose();
+  }
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={handleOverlayClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+    >
+      <div
+        className="bg-[#FFFDF7] rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200"
+        style={{ borderRadius: "24px 28px 20px 26px" }}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <span className="font-hand text-sm text-gray-500">
+            {new Date(drawing.createdAt).toLocaleDateString("es-ES")}
+          </span>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">✕</button>
+        </div>
+        <div className="p-6">
+          <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
+            <InkPreview lines={drawing.lines} blot={drawing.blot} className="w-full h-full" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -179,7 +219,9 @@ export default function Perfil() {
   const [bio,        setBio]        = useState(BIO_DEFAULT);
   const [editingBio, setEditingBio] = useState(false);
   const [userDrawings, setUserDrawings] = useState<Drawing[]>([]);
+  const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const user = useMemo(() => getUser(), []);
 
   const heads    = catalog.filter(i => i.type === "head");
@@ -431,7 +473,8 @@ export default function Perfil() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {userDrawings.map((d) => (
                 <div key={d.id}
-                  className="relative flex flex-col items-center justify-center bg-white rounded-2xl p-4 transition-all duration-200 hover:scale-[1.03]"
+                  onClick={() => setSelectedDrawing(d)}
+                  className="relative flex flex-col items-center justify-center bg-white rounded-2xl p-4 transition-all duration-200 hover:scale-[1.03] cursor-pointer"
                   style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
                   <div className="w-full h-28 pointer-events-none">
                     <InkPreview lines={d.lines} blot={d.blot} />
@@ -447,7 +490,34 @@ export default function Perfil() {
           )}
         </div>
 
+        {/* ── FILA 4: Logros ── */}
+        <div>
+          <div className="flex items-baseline gap-3 mb-6">
+            <h2 className="font-display text-3xl md:text-4xl text-gray-900">✦ logros</h2>
+            <span className="font-hand text-base text-gray-400">pronto...</span>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl p-5 bg-white/60"
+                style={{ border: "1px solid rgba(0,0,0,0.04)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}
+              >
+                <span className="text-3xl opacity-20">🏆</span>
+                <span className="font-hand text-xs text-gray-300">???</span>
+              </div>
+            ))}
+          </div>
+          <p className="font-hand text-sm text-gray-300 mt-4 text-center">
+            pronto habrá logros por aquí...
+          </p>
+        </div>
+
       </div>
+
+      {selectedDrawing && (
+        <ViewModal drawing={selectedDrawing} onClose={() => setSelectedDrawing(null)} />
+      )}
     </div>
   );
 }
