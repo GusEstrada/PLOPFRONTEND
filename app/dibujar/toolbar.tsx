@@ -24,12 +24,12 @@ export default function Toolbar({
   saved: boolean;
 }) {
   return (
-    <div className="flex md:flex-col items-center gap-4 md:gap-5 p-4 md:p-5 bg-white/90 backdrop-blur-sm border-t-2 md:border-t-0 md:border-r-2 border-black overflow-x-auto">
+    <div className="flex md:flex-col items-center justify-center gap-1 md:gap-5 p-2 md:p-5 bg-white/90 backdrop-blur-sm border-t-2 md:border-t-0 md:border-r-2 border-black flex-wrap">
       {/* Subir — primero en móvil */}
       <button
         onClick={onSave}
         disabled={saving || saved}
-        className="order-first md:order-last font-hand text-sm px-4 py-2 rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:hover:translate-y-0"
+        className="order-first md:order-last font-hand text-xs px-2 py-1 md:text-sm md:px-4 md:py-2 rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:hover:translate-y-0"
         style={{
           background: saved
             ? "linear-gradient(135deg, #059669, #10b981)"
@@ -71,7 +71,7 @@ export default function Toolbar({
         ))}
       </div>
 
-      <div className="w-px h-6 md:w-6 md:h-px bg-gray-200" />
+      <div className="hidden md:block w-px h-6 md:w-6 md:h-px bg-gray-200" />
 
       {/* Colores */}
       <div className="flex md:flex-col items-center gap-2 md:gap-3">
@@ -92,7 +92,7 @@ export default function Toolbar({
         ))}
       </div>
 
-      <div className="w-px h-6 md:w-6 md:h-px bg-gray-200" />
+      <div className="hidden md:block w-px h-6 md:w-6 md:h-px bg-gray-200" />
 
       {/* Acciones */}
       <div className="flex md:flex-col items-center gap-2">
