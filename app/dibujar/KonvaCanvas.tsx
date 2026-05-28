@@ -11,6 +11,7 @@ interface LineData {
   points: number[];
   color: string;
   size: number;
+  tool: "pen" | "eraser";
 }
 
 export interface ImageTransform {
@@ -37,6 +38,7 @@ export default function KonvaCanvas({
   height,
   toolColor,
   toolSize,
+  tool = "pen",
   undoRef,
   clearRef,
   blot,
@@ -48,6 +50,7 @@ export default function KonvaCanvas({
   height: number;
   toolColor: string;
   toolSize: number;
+  tool?: "pen" | "eraser";
   undoRef: React.MutableRefObject<(() => void) | null>;
   clearRef: React.MutableRefObject<(() => void) | null>;
   blot?: BlotData;
@@ -137,14 +140,21 @@ export default function KonvaCanvas({
       const pos = e.target.getStage()?.getPointerPosition();
       if (!pos) return;
       const id = lineIdRef.current++;
-      const newLine: LineData = { id, points: [pos.x, pos.y], color: toolColor, size: toolSize };
+      const eraserSize = toolSize * 3;
+      const newLine: LineData = {
+        id,
+        points: [pos.x, pos.y],
+        color: toolColor,
+        size: tool === "eraser" ? eraserSize : toolSize,
+        tool,
+      };
       setLines((prev) => [...prev, newLine]);
 
-      if (clickCountRef.current % 5 === 0) {
+      if (tool !== "eraser" && clickCountRef.current % 5 === 0) {
         splatter(pos.x, pos.y);
       }
     },
-    [toolColor, toolSize, splatter]
+    [toolColor, toolSize, tool, splatter]
   );
 
   const handleMouseMove = useCallback(
@@ -161,12 +171,12 @@ export default function KonvaCanvas({
       });
 
       const now = Date.now();
-      if (now - lastParticleTime.current > 80) {
+      if (tool !== "eraser" && now - lastParticleTime.current > 80) {
         lastParticleTime.current = now;
         addParticles(pos.x, pos.y, 1);
       }
     },
-    [addParticles]
+    [tool, addParticles]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -216,7 +226,7 @@ export default function KonvaCanvas({
       onTouchStart={handleMouseDown}
       onTouchMove={handleMouseMove}
       onTouchEnd={handleMouseUp}
-      style={{ background: "#FAFAFA", cursor: "crosshair", touchAction: "none" }}
+      style={{ background: "#FAFAFA", cursor: tool === "eraser" ? "cell" : "crosshair", touchAction: "none" }}
     >
       <Layer>
         {bgImage ? (
@@ -244,12 +254,12 @@ export default function KonvaCanvas({
           <Line
             key={line.id}
             points={line.points}
-            stroke={line.color}
+            stroke={line.tool === "eraser" ? "rgba(0,0,0,1)" : line.color}
             strokeWidth={line.size}
             tension={0.5}
             lineCap="round"
             lineJoin="round"
-            globalCompositeOperation="source-over"
+            globalCompositeOperation={line.tool === "eraser" ? "destination-out" : "source-over"}
           />
         ))}
       </Layer>

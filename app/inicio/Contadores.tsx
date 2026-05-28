@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 function useCountUp(target: number, duration = 1800, active = false) {
   const [count, setCount] = useState(0);
@@ -56,8 +57,7 @@ export default function Contadores() {
   const [stats, setStats] = useState({ totalDrawings: 0, todayDrawings: 0, totalUsers: 0, daysActive: 0 });
 
   useEffect(() => {
-    fetch("/api/stats")
-      .then(res => res.json())
+    apiFetch<typeof stats>("/stats")
       .then(data => setStats(data))
       .catch(() => {});
   }, []);

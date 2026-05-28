@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useId } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import NavBar from "../inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
 import { InkBlotSVG, BlotData } from "@/app/dibujar/inkblot";
@@ -11,9 +12,17 @@ interface User {
   name: string;
 }
 
+interface LineData {
+  id: number;
+  points: number[];
+  color: string;
+  size: number;
+  tool?: "pen" | "eraser";
+}
+
 interface Drawing {
   id: string;
-  lines: { id: number; points: number[]; color: string; size: number }[];
+  lines: LineData[];
   createdAt: string;
   user: User;
   likesCount: number;
@@ -57,33 +66,59 @@ const cardRots = [
   "0.5deg", "-0.4deg", "0.6deg",
 ];
 
-function InkPreview({ lines, blot, className }: { lines: Drawing["lines"]; blot?: Drawing["blot"]; className?: string }) {
+function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Drawing["blot"]; className?: string }) {
+  const uid = useId();
+
   if (!lines || lines.length === 0) {
     return <p className="font-hand text-xs text-gray-500">dibujo vacío</p>;
   }
+
   const xs = lines.flatMap(l => l.points.filter((_, i) => i % 2 === 0));
   const ys = lines.flatMap(l => l.points.filter((_, i) => i % 2 === 1));
   if (xs.length === 0) return <p className="font-hand text-xs text-gray-500">dibujo vacío</p>;
 
+  const penLines = lines.filter(l => !l.tool || l.tool === "pen");
+  const eraserLines = lines.filter(l => l.tool === "eraser");
+  const maskId = `em-${uid}`;
   const blotImgW = 1001;
   const blotImgH = 1002;
 
   if (blot?.imageUrl) {
     return (
       <svg viewBox={`0 0 ${blotImgW} ${blotImgH}`} className={className ?? "w-full h-full"}>
+        {eraserLines.length > 0 && (
+          <defs>
+            <mask id={maskId}>
+              <rect width={blotImgW} height={blotImgH} fill="white" />
+              {eraserLines.map(line => (
+                <polyline
+                  key={line.id}
+                  points={line.points.join(",")}
+                  stroke="black"
+                  strokeWidth={line.size}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              ))}
+            </mask>
+          </defs>
+        )}
         <image href={blot.imageUrl} width={blotImgW} height={blotImgH} />
-        {lines.map(line => (
-          <polyline
-            key={line.id}
-            points={line.points.join(",")}
-            fill="none"
-            stroke={line.color}
-            strokeWidth={line.size}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.8}
-          />
-        ))}
+        <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
+          {penLines.map(line => (
+            <polyline
+              key={line.id}
+              points={line.points.join(",")}
+              fill="none"
+              stroke={line.color}
+              strokeWidth={line.size}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.8}
+            />
+          ))}
+        </g>
       </svg>
     );
   }
@@ -102,18 +137,38 @@ function InkPreview({ lines, blot, className }: { lines: Drawing["lines"]; blot?
         <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none" blot={blot as BlotData} />
       )}
       <svg viewBox={`${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`} className="absolute inset-0 w-full h-full">
-        {lines.map(line => (
-          <polyline
-            key={line.id}
-            points={line.points.join(",")}
-            fill="none"
-            stroke={line.color}
-            strokeWidth={line.size}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.8}
-          />
-        ))}
+        {eraserLines.length > 0 && (
+          <defs>
+            <mask id={maskId}>
+              <rect x={minX - pad} y={minY - pad} width={w + pad * 2} height={h + pad * 2} fill="white" />
+              {eraserLines.map(line => (
+                <polyline
+                  key={line.id}
+                  points={line.points.join(",")}
+                  stroke="black"
+                  strokeWidth={line.size}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                />
+              ))}
+            </mask>
+          </defs>
+        )}
+        <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
+          {penLines.map(line => (
+            <polyline
+              key={line.id}
+              points={line.points.join(",")}
+              fill="none"
+              stroke={line.color}
+              strokeWidth={line.size}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.8}
+            />
+          ))}
+        </g>
       </svg>
     </div>
   );
@@ -126,6 +181,7 @@ function DetailModal({
   onLike,
   onCommentAdded,
   onCommentDeleted,
+  isLiked,
 }: {
   drawing: Drawing;
   onClose: () => void;
@@ -133,13 +189,18 @@ function DetailModal({
   onLike: (drawingId: string, liked: boolean) => void;
   onCommentAdded: (drawingId: string) => void;
   onCommentDeleted: (drawingId: string) => void;
+  isLiked: boolean;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
   const [sending, setSending] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
-  const [hasLiked, setHasLiked] = useState(false);
+  const [hasLiked, setHasLiked] = useState(isLiked);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setHasLiked(isLiked);
+  }, [isLiked]);
 
   useEffect(() => {
     setLoadingComments(true);
@@ -213,7 +274,7 @@ function DetailModal({
               }}
               className="flex items-center gap-1.5 text-sm transition-colors cursor-pointer"
             >
-              <span className={`${hasLiked ? "text-red-400" : "text-gray-400 hover:text-red-400"}`}>
+              <span className={`text-lg transition-transform ${hasLiked ? "text-red-400 scale-110" : "text-gray-400 hover:text-red-400"}`}>
                 {hasLiked ? "❤️" : "♡"}
               </span>
               <span className="font-hand text-gray-500">{drawing.likesCount}</span>
@@ -277,12 +338,21 @@ function DetailModal({
 }
 
 export default function Galeria() {
+  const router = useRouter();
   const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const currentUser = getUser();
+
+  // Derive the selected drawing reactively from the drawings array
+  const selectedDrawing = drawings.find(d => d.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!localStorage.getItem("plop_token")) router.replace("/");
+  }, [router]);
 
   useEffect(() => {
     setLoading(true);
@@ -300,8 +370,10 @@ export default function Galeria() {
     try {
       if (liked) {
         await apiFetch(`/gallery/${drawingId}/like`, { method: "DELETE" });
+        setLikedIds(prev => { const s = new Set(prev); s.delete(drawingId); return s; });
       } else {
         await apiFetch(`/gallery/${drawingId}/like`, { method: "POST" });
+        setLikedIds(prev => new Set(prev).add(drawingId));
       }
       setDrawings(prev =>
         prev.map(d =>
@@ -325,11 +397,12 @@ export default function Galeria() {
       {selectedDrawing && (
         <DetailModal
           drawing={selectedDrawing}
-          onClose={() => setSelectedDrawing(null)}
+          onClose={() => setSelectedId(null)}
           currentUser={currentUser}
           onLike={toggleLike}
           onCommentAdded={(id) => handleCommentCountChange(id, 1)}
           onCommentDeleted={(id) => handleCommentCountChange(id, -1)}
+          isLiked={likedIds.has(selectedDrawing.id)}
         />
       )}
 
@@ -363,14 +436,12 @@ export default function Galeria() {
         </div>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="relative z-10 text-center py-20">
           <p className="font-hand text-lg text-gray-400">cargando...</p>
         </div>
       )}
 
-      {/* Sin dibujos */}
       {!loading && drawings.length === 0 && (
         <div className="relative z-10 text-center py-20">
           <p className="font-hand text-lg text-gray-400">todavía no hay dibujos</p>
@@ -380,48 +451,49 @@ export default function Galeria() {
         </div>
       )}
 
-      {/* Masonry */}
       {!loading && drawings.length > 0 && (
         <div className="relative z-10 px-6 md:px-16 lg:px-24">
           <div className="max-w-6xl mx-auto columns-2 md:columns-3 lg:columns-4 gap-4">
-            {drawings.map((d, i) => (
-              <div
-                key={d.id}
-                onClick={() => setSelectedDrawing(d)}
-                className="mb-4 p-4 flex flex-col break-inside-avoid transition-all duration-200 hover:scale-[1.02] hover:rotate-0 cursor-pointer"
-                style={{
-                  backgroundColor: cardColors[i % cardColors.length],
-                  borderRadius: radii[i % radii.length],
-                  transform: `rotate(${cardRots[i % cardRots.length]})`,
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.07)",
-                }}
-              >
-                <div className="w-full h-32 mb-2 bg-white/40 rounded-lg overflow-hidden pointer-events-none">
-                  <InkPreview lines={d.lines} blot={d.blot} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-hand text-xs text-gray-700">{d.user.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="font-hand text-xs text-gray-500">💬 {d.commentsCount}</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleLike(d.id, false);
-                        }}
-                        className="text-xs text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
-                      >
-                        ♡
-                      </button>
-                      <span className="font-hand text-xs text-gray-500">{d.likesCount}</span>
+            {drawings.map((d, i) => {
+              const liked = likedIds.has(d.id);
+              return (
+                <div
+                  key={d.id}
+                  onClick={() => setSelectedId(d.id)}
+                  className="mb-4 p-4 flex flex-col break-inside-avoid transition-all duration-200 hover:scale-[1.02] hover:rotate-0 cursor-pointer"
+                  style={{
+                    backgroundColor: cardColors[i % cardColors.length],
+                    borderRadius: radii[i % radii.length],
+                    transform: `rotate(${cardRots[i % cardRots.length]})`,
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.07)",
+                  }}
+                >
+                  <div className="w-full h-32 mb-2 bg-white/40 rounded-lg overflow-hidden pointer-events-none">
+                    <InkPreview lines={d.lines} blot={d.blot} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-hand text-xs text-gray-700">{d.user.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-hand text-xs text-gray-500">💬 {d.commentsCount}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLike(d.id, liked);
+                          }}
+                          className={`text-sm transition-colors cursor-pointer ${liked ? "text-red-400" : "text-gray-400 hover:text-red-400"}`}
+                        >
+                          {liked ? "❤️" : "♡"}
+                        </button>
+                        <span className="font-hand text-xs text-gray-500">{d.likesCount}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Paginación */}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-4 mt-8">
               <button

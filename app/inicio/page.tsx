@@ -1,8 +1,17 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import NavBar from "./NavBar";
 import Contadores from "./Contadores";
 
 export default function Inicio() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!localStorage.getItem("plop_token")) router.replace("/");
+  }, [router]);
   return (
     <div className="bg-[#FFFDF7] min-h-screen">
 
@@ -119,7 +128,7 @@ export default function Inicio() {
             }}>
             ¿tú qué ves?
           </p>
-          <a href="/galeria"
+          <a href="/dibujar"
             className="inline-block font-hand text-lg md:text-xl px-10 py-4 rounded-2xl text-white transition-all duration-200 hover:-translate-y-1 active:scale-95"
             style={{
               background: "linear-gradient(135deg,#4f46e5,#7c3aed)",

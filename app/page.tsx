@@ -2,11 +2,16 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { apiFetch, setToken, clearToken, setUser, removeUser } from "@/lib/api";
 
 export default function Login() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (localStorage.getItem("plop_token")) router.replace("/inicio");
+  }, [router]);
+
   const [modo, setModo] = useState<"login" | "register">("login");
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");

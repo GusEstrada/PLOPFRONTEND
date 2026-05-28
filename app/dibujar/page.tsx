@@ -15,6 +15,11 @@ const KonvaCanvas = dynamic(() => import("./KonvaCanvas"), { ssr: false });
 
 export default function Dibujar() {
   const router = useRouter();
+
+  useEffect(() => {
+    if (!localStorage.getItem("plop_token")) router.replace("/");
+  }, [router]);
+
   const [phase, setPhase] = useState<"idle" | "drawing">("idle");
   const [color, setColor] = useState("#000000");
   const [size, setSize] = useState(5);
@@ -25,6 +30,8 @@ export default function Dibujar() {
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [tool, setTool] = useState<"pen" | "eraser">("pen");
   const undoRef = useRef<(() => void) | null>(null);
   const clearRef = useRef<(() => void) | null>(null);
   const linesRef = useRef<any[]>([]);
@@ -71,6 +78,7 @@ export default function Dibujar() {
   const handleSave = useCallback(async () => {
     if (!blotId || saved) return;
     setSaving(true);
+    setSaveError("");
     try {
       const { offsetX, offsetY, scale } = imageTransformRef.current;
       const lines = linesRef.current.map((line: any) => ({
@@ -85,7 +93,9 @@ export default function Dibujar() {
       });
       setSaved(true);
       setTimeout(() => router.push("/galeria"), 1500);
-    } catch {}
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Error al guardar. Intenta de nuevo.");
+    }
     setSaving(false);
   }, [blotId, saved, router]);
 
@@ -202,6 +212,8 @@ export default function Dibujar() {
         setColor={setColor}
         size={size}
         setSize={setSize}
+        tool={tool}
+        setTool={setTool}
         onUndo={() => undoRef.current?.()}
         onClear={() => clearRef.current?.()}
         onSave={handleSave}
@@ -209,11 +221,17 @@ export default function Dibujar() {
         saved={saved}
       />
       <div className="flex-1 relative">
+        {saveError && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-red-50 border border-red-200 text-red-600 font-hand text-sm px-4 py-2 rounded-xl shadow-sm">
+            {saveError}
+          </div>
+        )}
         <KonvaCanvas
           width={dims.w}
           height={dims.h}
           toolColor={color}
           toolSize={size}
+          tool={tool}
           undoRef={undoRef}
           clearRef={clearRef}
           blot={blot}

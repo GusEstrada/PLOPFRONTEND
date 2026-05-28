@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useId } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiFetch, getUser } from "@/lib/api";
 import { InkBlotSVG, BlotData } from "@/app/dibujar/inkblot";
 
@@ -23,6 +24,7 @@ interface LineData {
   points: number[];
   color: string;
   size: number;
+  tool?: "pen" | "eraser";
 }
 
 interface Drawing {
@@ -78,6 +80,8 @@ function Selector({ label, items, currentIdx, onPrev, onNext }: {
 }
 
 function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"] }) {
+  const uid = useId();
+
   if (!lines || lines.length === 0) {
     return <p className="font-hand text-xs text-gray-500">vacío</p>;
   }
@@ -85,25 +89,33 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
   const ys = lines.flatMap(l => l.points.filter((_, i) => i % 2 === 1));
   if (xs.length === 0) return <p className="font-hand text-xs text-gray-500">vacío</p>;
 
+  const penLines = lines.filter(l => !l.tool || l.tool === "pen");
+  const eraserLines = lines.filter(l => l.tool === "eraser");
+  const maskId = `pm-${uid}`;
   const blotImgW = 1001;
   const blotImgH = 1002;
 
   if (blot?.imageUrl) {
     return (
       <svg viewBox={`0 0 ${blotImgW} ${blotImgH}`} className="w-full h-full">
+        {eraserLines.length > 0 && (
+          <defs>
+            <mask id={maskId}>
+              <rect width={blotImgW} height={blotImgH} fill="white" />
+              {eraserLines.map(line => (
+                <polyline key={line.id} points={line.points.join(",")} stroke="black"
+                  strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              ))}
+            </mask>
+          </defs>
+        )}
         <image href={blot.imageUrl} width={blotImgW} height={blotImgH} />
-        {lines.map(line => (
-          <polyline
-            key={line.id}
-            points={line.points.join(",")}
-            fill="none"
-            stroke={line.color}
-            strokeWidth={line.size}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.8}
-          />
-        ))}
+        <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
+          {penLines.map(line => (
+            <polyline key={line.id} points={line.points.join(",")} fill="none"
+              stroke={line.color} strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
+          ))}
+        </g>
       </svg>
     );
   }
@@ -119,18 +131,23 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
         <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none" blot={blot as BlotData} />
       )}
       <svg viewBox={`${minX - pad} ${minY - pad} ${(maxX - minX || 1) + pad * 2} ${(maxY - minY || 1) + pad * 2}`} className="absolute inset-0 w-full h-full">
-        {lines.map(line => (
-          <polyline
-            key={line.id}
-            points={line.points.join(",")}
-            fill="none"
-            stroke={line.color}
-            strokeWidth={line.size}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.8}
-          />
-        ))}
+        {eraserLines.length > 0 && (
+          <defs>
+            <mask id={maskId}>
+              <rect x={minX - pad} y={minY - pad} width={(maxX - minX || 1) + pad * 2} height={(maxY - minY || 1) + pad * 2} fill="white" />
+              {eraserLines.map(line => (
+                <polyline key={line.id} points={line.points.join(",")} stroke="black"
+                  strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+              ))}
+            </mask>
+          </defs>
+        )}
+        <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
+          {penLines.map(line => (
+            <polyline key={line.id} points={line.points.join(",")} fill="none"
+              stroke={line.color} strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
+          ))}
+        </g>
       </svg>
     </div>
   );
@@ -139,6 +156,12 @@ function InkPreview({ lines, blot }: { lines: LineData[]; blot?: Drawing["blot"]
 const BIO_DEFAULT = "dibujante de manchas. veo cosas raras.\na veces un pato, a veces una nube.";
 
 export default function Perfil() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!localStorage.getItem("plop_token")) router.replace("/");
+  }, [router]);
+
   const [catalog, setCatalog] = useState<CatalogItem[]>([]);
   const [headIdx,  setHeadIdx]  = useState(0);
   const [eyesIdx,  setEyesIdx]  = useState(0);
@@ -151,6 +174,8 @@ export default function Perfil() {
   const [savedAccIdx,   setSavedAccIdx]   = useState(0);
 
   const [nombre,     setNombre]     = useState("");
+  const [memberSince, setMemberSince] = useState("");
+  const [totalLikes,  setTotalLikes]  = useState<number>(0);
   const [bio,        setBio]        = useState(BIO_DEFAULT);
   const [editingBio, setEditingBio] = useState(false);
   const [scrolled,   setScrolled]   = useState(false);
@@ -179,11 +204,15 @@ export default function Perfil() {
 
     Promise.all([
       apiFetch<{ items: CatalogItem[] }>("/avatar-catalog"),
-      apiFetch<{ name: string; bio: string; avatarConfig?: AvatarConfig }>("/auth/me"),
+      apiFetch<{ name: string; bio: string; avatarConfig?: AvatarConfig; createdAt?: string; totalLikes?: number }>("/auth/me"),
     ]).then(([cat, me]) => {
       setCatalog(cat.items);
       setNombre(me.name);
       if (me.bio) setBio(me.bio);
+      if (me.createdAt) {
+        setMemberSince(new Date(me.createdAt).toLocaleDateString("es-MX", { month: "long", year: "numeric" }));
+      }
+      if (me.totalLikes !== undefined) setTotalLikes(me.totalLikes);
       if (me.avatarConfig) {
         const { headUrl, eyesUrl, mouthUrl, accessoryUrl } = me.avatarConfig;
         const h = cat.items.filter(i => i.type === "head");
@@ -290,7 +319,9 @@ export default function Perfil() {
                 ✦ artista plop
               </span>
               <h1 className="font-display text-4xl md:text-6xl text-gray-900 leading-tight mb-1">{nombre}</h1>
-              <p className="font-hand text-sm text-gray-400">miembro desde mayo 2026</p>
+              <p className="font-hand text-sm text-gray-400">
+                {memberSince ? `miembro desde ${memberSince}` : "artista de manchas"}
+              </p>
             </div>
 
             {/* Separador vertical */}
@@ -336,8 +367,8 @@ export default function Perfil() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { value: userDrawings.length, label: "dibujos", style: { color: "#059669" } },
-            { value: "—", label: "días activo", style: { background: "linear-gradient(135deg,#4f46e5,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } },
-            { value: "1", label: "mancha de hoy", style: { color: "#f59e0b" } },
+            { value: totalLikes || "—", label: "likes recibidos", style: { background: "linear-gradient(135deg,#4f46e5,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } },
+            { value: userDrawings.length > 0 ? "✓" : "—", label: "mancha de hoy", style: { color: "#f59e0b" } },
           ].map(({ value, label, style }) => (
             <div key={label} className="text-center rounded-3xl py-6 bg-white"
               style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
