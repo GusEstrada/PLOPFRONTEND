@@ -19,6 +19,9 @@ interface Drawing {
   id: string;
   lines: LineData[];
   createdAt: string;
+  user: { id: string; name: string };
+  likesCount: number;
+  commentsCount: number;
   blot: {
     id: string;
     date: string;
@@ -140,7 +143,7 @@ function BlotBadge({ blot }: { blot?: Drawing["blot"] }) {
 }
 
 function UserDetailModal({ drawing, onClose, currentUser }: {
-  drawing: Drawing & { user?: { id: string; name: string } };
+  drawing: Drawing;
   onClose: () => void;
   currentUser: { id: string; name: string } | null;
 }) {
@@ -149,7 +152,7 @@ function UserDetailModal({ drawing, onClose, currentUser }: {
   const [sending, setSending] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
   const [hasLiked, setHasLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
+  const [likesCount, setLikesCount] = useState(drawing.likesCount);
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -215,7 +218,7 @@ function UserDetailModal({ drawing, onClose, currentUser }: {
         style={{ borderRadius: "24px 28px 20px 26px" }}>
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <span className="font-hand text-sm text-gray-500">
-            {new Date(drawing.createdAt).toLocaleDateString("es-ES")}
+            {drawing.user.name} · {new Date(drawing.createdAt).toLocaleDateString("es-ES")}
           </span>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">✕</button>
         </div>

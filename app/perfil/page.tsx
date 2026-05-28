@@ -31,6 +31,9 @@ interface Drawing {
   id: string;
   lines: LineData[];
   createdAt: string;
+  user: { id: string; name: string };
+  likesCount: number;
+  commentsCount: number;
   blot: {
     id: string;
     date: string;
@@ -38,6 +41,14 @@ interface Drawing {
     satellites: { x: number; y: number; r: number }[];
     imageUrl: string | null;
   };
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  userId: string;
+  user: { id: string; name: string };
 }
 
 function SafeImg({ src, className }: { src: string; className?: string }) {
@@ -152,8 +163,27 @@ function BlotBadge({ blot }: { blot?: Drawing["blot"] }) {
   return null;
 }
 
-function ViewModal({ drawing, onClose }: { drawing: Drawing; onClose: () => void }) {
+function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted }: {
+  drawing: Drawing;
+  onClose: () => void;
+  currentUser: { id: string; name: string } | null;
+  onDrawingDeleted: (drawingId: string) => void;
+}) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(true);
+  const [hasLiked, setHasLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(drawing.likesCount);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLoadingComments(true);
+    apiFetch<{ comments: Comment[] }>(`/gallery/${drawing.id}/comments`)
+      .then(data => setComments(data.comments))
+      .catch(() => {})
+      .finally(() => setLoadingComments(false));
+  }, [drawing.id]);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -165,6 +195,51 @@ function ViewModal({ drawing, onClose }: { drawing: Drawing; onClose: () => void
 
   function handleOverlayClick(e: React.MouseEvent) {
     if (e.target === overlayRef.current) onClose();
+  }
+
+  async function toggleLike() {
+    if (!currentUser) return;
+    try {
+      if (hasLiked) {
+        await apiFetch(`/gallery/${drawing.id}/like`, { method: "DELETE" });
+        setLikesCount(prev => prev - 1);
+      } else {
+        await apiFetch(`/gallery/${drawing.id}/like`, { method: "POST" });
+        setLikesCount(prev => prev + 1);
+      }
+      setHasLiked(!hasLiked);
+    } catch {}
+  }
+
+  async function handleSubmitComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentUser || !commentText.trim() || sending) return;
+    setSending(true);
+    try {
+      const newComment = await apiFetch<Comment>(`/gallery/${drawing.id}/comments`, {
+        method: "POST",
+        body: { content: commentText.trim() },
+      });
+      setComments(prev => [...prev, newComment]);
+      setCommentText("");
+    } catch {}
+    setSending(false);
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    try {
+      await apiFetch(`/gallery/${drawing.id}/comments/${commentId}`, { method: "DELETE" });
+      setComments(prev => prev.filter(c => c.id !== commentId));
+    } catch {}
+  }
+
+  async function handleDeleteDrawing() {
+    if (!confirm("¿Estás seguro de borrar este dibujo?")) return;
+    try {
+      await apiFetch(`/drawings/${drawing.id}`, { method: "DELETE" });
+      onDrawingDeleted(drawing.id);
+      onClose();
+    } catch {}
   }
 
   return (
@@ -181,12 +256,73 @@ function ViewModal({ drawing, onClose }: { drawing: Drawing; onClose: () => void
           <span className="font-hand text-sm text-gray-500">
             {new Date(drawing.createdAt).toLocaleDateString("es-ES")}
           </span>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">✕</button>
+          <div className="flex items-center gap-3">
+            {currentUser?.id === drawing.user.id && (
+              <button onClick={handleDeleteDrawing} className="text-gray-300 hover:text-red-400 text-sm cursor-pointer">
+                🗑
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">✕</button>
+          </div>
         </div>
         <div className="p-6">
-          <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden relative">
+          <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden mb-4 relative">
             <InkPreview lines={drawing.lines} className="w-full h-full" />
             <BlotBadge blot={drawing.blot} />
+          </div>
+          <div className="flex items-center gap-4 mb-6">
+            {currentUser && (
+              <button onClick={toggleLike} className="flex items-center gap-1.5 text-sm transition-colors cursor-pointer">
+                <span className={`text-lg transition-transform ${hasLiked ? "text-red-400 scale-110" : "text-gray-400 hover:text-red-400"}`}>
+                  {hasLiked ? "❤️" : "♡"}
+                </span>
+                <span className="font-hand text-gray-500">{likesCount}</span>
+              </button>
+            )}
+            <span className="font-hand text-sm text-gray-400">💬 {comments.length}</span>
+          </div>
+          <div className="border-t border-gray-100 pt-4">
+            <h3 className="font-hand text-sm text-gray-500 mb-3">comentarios</h3>
+            {loadingComments && <p className="font-hand text-xs text-gray-400">cargando...</p>}
+            {!loadingComments && comments.length === 0 && (
+              <p className="font-hand text-xs text-gray-400 mb-4">sin comentarios todavía</p>
+            )}
+            <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
+              {comments.map(c => (
+                <div key={c.id} className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-hand text-xs text-indigo-500 font-semibold">{c.user.name}</span>
+                    <p className="font-hand text-sm text-gray-700">{c.content}</p>
+                  </div>
+                  {currentUser?.id === c.userId && (
+                    <button
+                      onClick={() => handleDeleteComment(c.id)}
+                      className="text-gray-300 hover:text-red-400 text-xs cursor-pointer mt-0.5"
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            {currentUser && (
+              <form onSubmit={handleSubmitComment} className="flex gap-2">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={e => setCommentText(e.target.value)}
+                  placeholder="escribe un comentario..."
+                  className="flex-1 bg-gray-100 rounded-xl px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 outline-none focus:ring-1 focus:ring-indigo-400 font-hand"
+                />
+                <button
+                  type="submit"
+                  disabled={!commentText.trim() || sending}
+                  className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-300 text-white font-hand text-sm px-4 py-2 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {sending ? "..." : "enviar"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>
@@ -518,7 +654,12 @@ export default function Perfil() {
       </div>
 
       {selectedDrawing && (
-        <ViewModal drawing={selectedDrawing} onClose={() => setSelectedDrawing(null)} />
+        <ViewModal
+          drawing={selectedDrawing}
+          onClose={() => setSelectedDrawing(null)}
+          currentUser={user}
+          onDrawingDeleted={(id) => setUserDrawings(prev => prev.filter(d => d.id !== id))}
+        />
       )}
     </div>
   );
