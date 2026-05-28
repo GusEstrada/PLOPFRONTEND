@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useId } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/app/inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
-import { InkBlotSVG, BlotData } from "@/app/dibujar/inkblot";
+import { computeBounds } from "@/app/dibujar/inkblot";
 
 interface CatalogItem {
   type: "head" | "eyes" | "mouth" | "acc";
@@ -127,10 +127,26 @@ function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Draw
   const h = maxY - minY || 1;
   const pad = 20;
 
+  const blotBounds = blot?.mainBlot && blot.mainBlot.length > 0 ? computeBounds(blot.mainBlot) : null;
+  const blotPathData = blotBounds ? blot!.mainBlot.reduce((acc, p, i, arr) => {
+    if (i % 2 === 1) {
+      const x = arr[i - 1];
+      const y = arr[i];
+      return i === 1 ? `M ${x} ${y}` : `${acc} L ${x} ${y}`;
+    }
+    return acc;
+  }, "") : "";
+
   return (
     <div className={`relative ${className ?? "w-full h-full"}`}>
-      {blot?.mainBlot && blot.mainBlot.length > 0 && (
-        <InkBlotSVG className="absolute inset-0 w-full h-full pointer-events-none opacity-30" blot={blot as BlotData} />
+      {blotBounds && (
+        <svg viewBox={`${blotBounds.minX - pad} ${blotBounds.minY - pad} ${blotBounds.w + pad * 2} ${blotBounds.h + pad * 2}`}
+          className="absolute inset-0 w-full h-full pointer-events-none opacity-30" fill="none">
+          <path d={`${blotPathData} Z`} fill="black" opacity={1} />
+          {blot!.satellites.map((sat, i) => (
+            <circle key={i} cx={sat.x} cy={sat.y} r={sat.r} fill="black" />
+          ))}
+        </svg>
       )}
       <svg viewBox={`${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`} className="absolute inset-0 w-full h-full">
         {eraserLines.length > 0 && (
