@@ -79,7 +79,7 @@ function Selector({ label, items, currentIdx, onPrev, onNext }: {
   );
 }
 
-function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Drawing["blot"]; className?: string }) {
+function InkPreview({ lines, className }: { lines: LineData[]; className?: string }) {
   const uid = useId();
   if (!lines || lines.length === 0) {
     return <p className="font-hand text-xs text-gray-500">vacío</p>;
@@ -91,33 +91,6 @@ function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Draw
   const penLines = lines.filter(l => !l.tool || l.tool === "pen");
   const eraserLines = lines.filter(l => l.tool === "eraser");
   const maskId = `pm-${uid}`;
-  const blotImgW = 1001;
-  const blotImgH = 1002;
-
-  if (blot?.imageUrl) {
-    return (
-      <svg viewBox={`0 0 ${blotImgW} ${blotImgH}`} className={className ?? "w-full h-full"}>
-        {eraserLines.length > 0 && (
-          <defs>
-            <mask id={maskId}>
-              <rect width={blotImgW} height={blotImgH} fill="white" />
-              {eraserLines.map(line => (
-                <polyline key={line.id} points={line.points.join(",")} stroke="black"
-                  strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-              ))}
-            </mask>
-          </defs>
-        )}
-        <image href={blot.imageUrl} width={blotImgW} height={blotImgH} opacity={0.3} />
-        <g mask={eraserLines.length > 0 ? `url(#${maskId})` : undefined}>
-          {penLines.map(line => (
-            <polyline key={line.id} points={line.points.join(",")} fill="none"
-              stroke={line.color} strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" opacity={0.8} />
-          ))}
-        </g>
-      </svg>
-    );
-  }
 
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
@@ -125,68 +98,14 @@ function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Draw
   const maxY = Math.max(...ys);
   const w = maxX - minX || 1;
   const h = maxY - minY || 1;
-
-  const blotBounds = blot?.mainBlot && blot.mainBlot.length > 0 ? computeBounds(blot.mainBlot) : null;
-  const drawCx = (minX + maxX) / 2;
-  const drawCy = (minY + maxY) / 2;
-  const s = blotBounds ? Math.min(w / blotBounds.w, h / blotBounds.h) * 0.6 : 0;
-  const cx = blotBounds ? drawCx - ((blotBounds.minX + blotBounds.maxX) / 2) * s : 0;
-  const cy = blotBounds ? drawCy - ((blotBounds.minY + blotBounds.maxY) / 2) * s : 0;
-
-  const scaledMainBlot = blotBounds ? blot!.mainBlot.map((p, i) =>
-    i % 2 === 0 ? p * s + cx : p * s + cy
-  ) : [];
-
-  const blotX = scaledMainBlot.filter((_, i) => i % 2 === 0);
-  const blotY = scaledMainBlot.filter((_, i) => i % 2 === 1);
-  let bMinX = blotX.length > 0 ? Math.min(...blotX) : Infinity;
-  let bMaxX = blotX.length > 0 ? Math.max(...blotX) : -Infinity;
-  let bMinY = blotY.length > 0 ? Math.min(...blotY) : Infinity;
-  let bMaxY = blotY.length > 0 ? Math.max(...blotY) : -Infinity;
-
-  if (blotBounds) {
-    for (const sat of blot!.satellites) {
-      const sx = sat.x * s + cx;
-      const sy = sat.y * s + cy;
-      const sr = sat.r * s;
-      bMinX = Math.min(bMinX, sx - sr);
-      bMaxX = Math.max(bMaxX, sx + sr);
-      bMinY = Math.min(bMinY, sy - sr);
-      bMaxY = Math.max(bMaxY, sy + sr);
-    }
-  }
-
-  const uniMinX = Math.min(minX, bMinX);
-  const uniMaxX = Math.max(maxX, bMaxX);
-  const uniMinY = Math.min(minY, bMinY);
-  const uniMaxY = Math.max(maxY, bMaxY);
-  const uniW = uniMaxX - uniMinX || 1;
-  const uniH = uniMaxY - uniMinY || 1;
   const pad = 20;
 
-  const blotPathData = blotBounds ? scaledMainBlot.reduce((acc, p, i, arr) => {
-    if (i % 2 === 1) {
-      const x = arr[i - 1];
-      const y = arr[i];
-      return i === 1 ? `M ${x} ${y}` : `${acc} L ${x} ${y}`;
-    }
-    return acc;
-  }, "") : "";
-
   return (
-    <svg viewBox={`${uniMinX - pad} ${uniMinY - pad} ${uniW + pad * 2} ${uniH + pad * 2}`} className={className ?? "w-full h-full"}>
-      {blotBounds && (
-        <>
-          <path d={`${blotPathData} Z`} fill="black" opacity={0.3} />
-          {blot!.satellites.map((sat, i) => (
-            <circle key={i} cx={sat.x * s + cx} cy={sat.y * s + cy} r={sat.r * s} fill="black" opacity={0.3} />
-          ))}
-        </>
-      )}
+    <svg viewBox={`${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`} className={className ?? "w-full h-full"}>
       {eraserLines.length > 0 && (
         <defs>
           <mask id={maskId}>
-            <rect x={uniMinX - pad} y={uniMinY - pad} width={uniW + pad * 2} height={uniH + pad * 2} fill="white" />
+            <rect x={minX - pad} y={minY - pad} width={w + pad * 2} height={h + pad * 2} fill="white" />
             {eraserLines.map(line => (
               <polyline key={line.id} points={line.points.join(",")} stroke="black"
                 strokeWidth={line.size} strokeLinecap="round" strokeLinejoin="round" fill="none" />
@@ -202,6 +121,35 @@ function InkPreview({ lines, blot, className }: { lines: LineData[]; blot?: Draw
       </g>
     </svg>
   );
+}
+
+function BlotBadge({ blot }: { blot?: Drawing["blot"] }) {
+  if (!blot) return null;
+  if (blot.imageUrl) {
+    return (
+      <div className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm">
+        <img src={blot.imageUrl} alt="" className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+  if (blot.mainBlot && blot.mainBlot.length > 0) {
+    const b = computeBounds(blot.mainBlot);
+    const path = blot.mainBlot.reduce((acc, p, i, arr) => {
+      if (i % 2 === 1) {
+        return i === 1 ? `M ${arr[i - 1]} ${arr[i]}` : `${acc} L ${arr[i - 1]} ${arr[i]}`;
+      }
+      return acc;
+    }, "");
+    const pad = 4;
+    return (
+      <div className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white">
+        <svg viewBox={`${b.minX - pad} ${b.minY - pad} ${b.w + pad * 2} ${b.h + pad * 2}`} className="w-full h-full">
+          <path d={`${path} Z`} fill="black" />
+        </svg>
+      </div>
+    );
+  }
+  return null;
 }
 
 function ViewModal({ drawing, onClose }: { drawing: Drawing; onClose: () => void }) {
@@ -236,8 +184,9 @@ function ViewModal({ drawing, onClose }: { drawing: Drawing; onClose: () => void
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl cursor-pointer">✕</button>
         </div>
         <div className="p-6">
-          <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
-            <InkPreview lines={drawing.lines} blot={drawing.blot} className="w-full h-full" />
+          <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden relative">
+            <InkPreview lines={drawing.lines} className="w-full h-full" />
+            <BlotBadge blot={drawing.blot} />
           </div>
         </div>
       </div>
@@ -528,8 +477,9 @@ export default function Perfil() {
                   onClick={() => setSelectedDrawing(d)}
                   className="relative flex flex-col items-center justify-center bg-white rounded-2xl p-4 transition-all duration-200 hover:scale-[1.03] cursor-pointer"
                   style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-                  <div className="w-full h-28 pointer-events-none">
-                    <InkPreview lines={d.lines} blot={d.blot} />
+                  <div className="w-full h-28 pointer-events-none relative">
+                    <InkPreview lines={d.lines} />
+                    <BlotBadge blot={d.blot} />
                   </div>
                   <span className="font-hand text-sm mt-2 text-gray-500">
                     {new Date(d.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
