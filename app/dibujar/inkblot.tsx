@@ -27,7 +27,7 @@ export const defaultBlotData: BlotData = {
   satellites: hardcodedSatellites,
 };
 
-function computeBounds(mainBlot: number[]) {
+export function computeBounds(mainBlot: number[]) {
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   for (let i = 0; i < mainBlot.length; i += 2) {
     const x = mainBlot[i], y = mainBlot[i + 1];
