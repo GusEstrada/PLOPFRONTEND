@@ -131,6 +131,7 @@ export default function KonvaCanvas({
 
   const handleMouseDown = useCallback(
     (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
+      e.evt.preventDefault();
       isDrawing.current = true;
       clickCountRef.current += 1;
       const pos = e.target.getStage()?.getPointerPosition();
@@ -149,6 +150,7 @@ export default function KonvaCanvas({
   const handleMouseMove = useCallback(
     (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (!isDrawing.current) return;
+      e.evt.preventDefault();
       const pos = e.target.getStage()?.getPointerPosition();
       if (!pos) return;
       setLines((prev) => {
@@ -214,7 +216,7 @@ export default function KonvaCanvas({
       onTouchStart={handleMouseDown}
       onTouchMove={handleMouseMove}
       onTouchEnd={handleMouseUp}
-      style={{ background: "#FAFAFA", cursor: "crosshair" }}
+      style={{ background: "#FAFAFA", cursor: "crosshair", touchAction: "none" }}
     >
       <Layer>
         {bgImage ? (
