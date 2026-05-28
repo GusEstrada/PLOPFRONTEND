@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PLOP - Frontend
 
-## Getting Started
+Una mancha nueva cada día, dibújala a tu manera.
 
-First, run the development server:
+---
+
+## Stack
+
+| Capa | Tecnología |
+|------|-----------|
+| Framework | Next.js 16 + React 19 |
+| Lenguaje | TypeScript |
+| Estilos | Tailwind CSS |
+| Dibujo | Canvas + Konva |
+| Backend | [plop-backend](https://github.com/GusEstrada/PLOPBACKEND) |
+
+---
+
+## Funcionalidades
+
+- **Login / Registro** — autenticación con JWT
+- **Inicio** — mancha del día, contadores animados, cards
+- **Dibujar** — canvas con plumones, capas, guardar/blot
+- **Galería** — feed de dibujos paginado, modal, likes, comentarios
+- **Perfil** — avatar personalizable, bio editable, galería de dibujos propios
+- **Foro** — posts y comentarios
+
+---
+
+## Cómo correr local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+La app necesita el backend corriendo en `http://localhost:4000`. Ver [plop-backend](https://github.com/GusEstrada/PLOPBACKEND).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Credenciales de prueba (seed)
 
-To learn more about Next.js, take a look at the following resources:
+| Email | Password | Rol |
+|-------|----------|-----|
+| admin@plop.app | plop123 | Admin |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy en Vercel
 
-## Deploy on Vercel
+1. Subir repo a GitHub
+2. Vercel → **Add New Project** → importar repo
+3. **Environment Variables:**
+   ```env
+   API_URL=https://<backend>.railway.app
+   ```
+4. Deploy — Vercel detecta Next.js automáticamente
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+El frontend usa `apiFetch()` de `@/lib/api` que llama a `/api/...`. Next.js reescribe esas rutas al backend via `next.config.ts` usando la variable `API_URL`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Variables de entorno
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `API_URL` | `http://localhost:4000` | URL del backend (proxy de Next.js) |
+
+---
+
+## Repos
+
+- **Frontend:** https://github.com/GusEstrada/PLOPFRONTEND
+- **Backend:** https://github.com/GusEstrada/PLOPBACKEND
