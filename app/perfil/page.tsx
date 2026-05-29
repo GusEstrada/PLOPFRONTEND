@@ -366,6 +366,7 @@ export default function Perfil() {
   const [userDrawings, setUserDrawings] = useState<Drawing[]>([]);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
   const [achievements, setAchievements] = useState<any[]>([]);
+  const [todayBlotId, setTodayBlotId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const user = useMemo(() => getUser(), []);
@@ -380,6 +381,8 @@ export default function Perfil() {
   const eyesUrl      = eyesList[eyesIdx]?.url ?? "";
   const mouthUrl     = mouths[mouthIdx]?.url ?? "";
   const accessoryUrl = accs[accIdx]?.url ?? "";
+
+  const hasDrawnToday = todayBlotId ? userDrawings.some(d => d.blot?.id === todayBlotId) : false;
 
   const hasChanges =
     headIdx  !== savedHeadIdx  ||
@@ -425,6 +428,10 @@ export default function Perfil() {
 
     apiFetch<any[]>(`/achievements/${user.id}`)
       .then(setAchievements)
+      .catch(() => {});
+
+    apiFetch<{ id: string }>("/blot/today")
+      .then(b => setTodayBlotId(b.id))
       .catch(() => {});
 
   }, [user]);
@@ -546,7 +553,7 @@ export default function Perfil() {
           {[
             { value: userDrawings.length, label: "dibujos", style: { color: "#059669" } },
             { value: totalLikes || "—", label: "likes recibidos", style: { background: "linear-gradient(135deg,#4f46e5,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } },
-            { value: userDrawings.length > 0 ? "✓" : "—", label: "mancha de hoy", style: { color: "#f59e0b" } },
+            { value: hasDrawnToday ? "✓" : "—", label: "mancha de hoy", style: { color: "#f59e0b" } },
           ].map(({ value, label, style }) => (
             <div key={label} className="text-center rounded-3xl py-6 bg-white"
               style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
