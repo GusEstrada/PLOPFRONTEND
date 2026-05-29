@@ -347,6 +347,7 @@ export default function Galeria() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [previewBlot, setPreviewBlot] = useState<Drawing["blot"] | null>(null);
+  const [gridKey, setGridKey] = useState(0);
   const currentUser = getUser();
   const { queue: toastQueue, push: pushToast, dismiss: dismissToast } = useAchievementToast();
 
@@ -399,6 +400,7 @@ export default function Galeria() {
 
   function handleDrawingDeleted(drawingId: string) {
     setDrawings(prev => prev.filter(d => d.id !== drawingId));
+    setGridKey(k => k + 1);
   }
 
   return (
@@ -466,7 +468,7 @@ export default function Galeria() {
 
       {!loading && drawings.length > 0 && (
         <div className="relative z-10 px-6 md:px-16 lg:px-24">
-          <div className="max-w-6xl mx-auto columns-2 md:columns-3 lg:columns-4 gap-4">
+          <div key={gridKey} className="max-w-6xl mx-auto columns-2 md:columns-3 lg:columns-4 gap-4">
             {drawings.map((d, i) => {
               const liked = likedIds.has(d.id);
               return (
