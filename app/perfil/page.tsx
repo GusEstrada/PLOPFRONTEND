@@ -376,13 +376,8 @@ export default function Perfil() {
   const [previewBlot, setPreviewBlot] = useState<Drawing["blot"] | null>(null);
   const [achievements, setAchievements] = useState<any[]>([]);
   const [todayBlotId, setTodayBlotId] = useState<string | null>(null);
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const user = useMemo(() => getUser(), []);
   const { queue: toastQueue, push: pushToast, dismiss: dismissToast } = useAchievementToast();
 
@@ -409,7 +404,7 @@ export default function Perfil() {
 
     Promise.all([
       apiFetch<{ items: CatalogItem[] }>("/avatar-catalog"),
-      apiFetch<{ name: string; bio: string; avatarConfig?: AvatarConfig; createdAt?: string; totalLikes?: number; profilePhotoUrl?: string | null }>("/auth/me"),
+      apiFetch<{ name: string; bio: string; avatarConfig?: AvatarConfig; createdAt?: string; totalLikes?: number }>("/auth/me"),
     ]).then(([cat, me]) => {
       setCatalog(cat.items);
       setNombre(me.name);
@@ -418,7 +413,6 @@ export default function Perfil() {
         setMemberSince(new Date(me.createdAt).toLocaleDateString("es-MX", { month: "long", year: "numeric" }));
       }
       if (me.totalLikes !== undefined) setTotalLikes(me.totalLikes);
-      if (me.profilePhotoUrl !== undefined) setProfilePhotoUrl(me.profilePhotoUrl);
       if (me.avatarConfig) {
         const { headUrl, eyesUrl, mouthUrl, accessoryUrl } = me.avatarConfig;
         const h = cat.items.filter(i => i.type === "head");
@@ -492,45 +486,6 @@ export default function Perfil() {
     } catch {}
   }
 
-  const initials = nombre
-    .split(" ")
-    .map(w => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  function handlePhotoClick() {
-    fileInputRef.current?.click();
-  }
-
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
-  }
-
-  async function handleUploadPhoto() {
-    if (!photoFile) return;
-    setUploadingPhoto(true);
-    try {
-      const token = localStorage.getItem("plop_token");
-      const formData = new FormData();
-      formData.append("photo", photoFile);
-      const res = await fetch("/api/profile/photo", {
-        method: "PUT",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-      if (!res.ok) throw new Error("Error al subir foto");
-      const data = await res.json();
-      setProfilePhotoUrl(data.profilePhotoUrl);
-      setPhotoFile(null);
-      setPhotoPreview(null);
-    } catch {}
-    setUploadingPhoto(false);
-  }
-
   return (
     <div className="min-h-screen bg-[#FFFDF7]">
 
@@ -546,54 +501,28 @@ export default function Perfil() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-16 lg:px-24 py-10 space-y-6">
 
-        {/* ── Instagram-style header ── */}
+        {/* ── FILA 1a: Bio card ── */}
         <div className="w-full rounded-3xl p-7 md:p-9 bg-white"
           style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
-          <div className="flex flex-col md:flex-row gap-6 md:gap-10 items-start">
+          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
 
-            {/* Foto de perfil */}
+            {/* Izquierda: badge + nombre + fecha */}
             <div className="shrink-0">
-              <div className="relative group">
-                {photoPreview ? (
-                  <img src={photoPreview} alt="" className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover" />
-                ) : profilePhotoUrl ? (
-                  <img src={profilePhotoUrl} alt="" className="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover" />
-                ) : (
-                  <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-indigo-100 flex items-center justify-center">
-                    <span className="font-display text-3xl text-indigo-400">{initials}</span>
-                  </div>
-                )}
-                <button onClick={handlePhotoClick}
-                  className="absolute inset-0 rounded-full bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center cursor-pointer">
-                  <span className="text-white opacity-0 group-hover:opacity-100 text-lg drop-shadow-md">📷</span>
-                </button>
-                <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFileSelect} />
-              </div>
-              {photoPreview && (
-                <div className="mt-2 flex justify-center">
-                  <button onClick={handleUploadPhoto} disabled={uploadingPhoto}
-                    className="font-hand text-xs text-white px-3 py-1 rounded-xl transition-opacity disabled:opacity-50 cursor-pointer"
-                    style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}>
-                    {uploadingPhoto ? "subiendo..." : "subir foto"}
-                  </button>
-                </div>
-              )}
+              <span className="inline-block font-hand text-xs text-indigo-500 px-3 py-1 rounded-full mb-4"
+                style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}>
+                ✦ artista plop
+              </span>
+              <h1 className="font-display text-4xl md:text-6xl text-gray-900 leading-tight mb-1 truncate max-w-full">{nombre}</h1>
+              <p className="font-hand text-sm text-gray-400">
+                {memberSince ? `miembro desde ${memberSince}` : "artista de manchas"}
+              </p>
             </div>
 
-            {/* Info: badge + nombre + bio + stats */}
-            <div className="flex-1 min-w-0 space-y-3">
-              <div>
-                <span className="inline-block font-hand text-xs text-indigo-500 px-3 py-1 rounded-full mb-2"
-                  style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}>
-                  ✦ artista plop
-                </span>
-                <h1 className="font-display text-4xl md:text-5xl text-gray-900 leading-tight truncate max-w-full">{nombre}</h1>
-                <p className="font-hand text-sm text-gray-400">
-                  {memberSince ? `miembro desde ${memberSince}` : "artista de manchas"}
-                </p>
-              </div>
+            {/* Separador vertical */}
+            <div className="hidden md:block w-px self-stretch bg-gray-100" />
 
-              {/* Bio editable */}
+            {/* Derecha: bio editable */}
+            <div className="flex-1 min-w-0">
               {editingBio ? (
                 <div className="space-y-2">
                   <textarea
@@ -609,12 +538,12 @@ export default function Perfil() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <button onClick={saveBio}
-                        className="font-hand text-sm text-white px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+                        className="font-hand text-sm text-white px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity"
                         style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}>
                         guardar
                       </button>
                       <button onClick={() => setEditingBio(false)}
-                        className="font-hand text-sm text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                        className="font-hand text-sm text-gray-400 hover:text-gray-600 transition-colors">
                         cancelar
                       </button>
                     </div>
@@ -623,22 +552,28 @@ export default function Perfil() {
                 </div>
               ) : (
                 <button onClick={() => setEditingBio(true)}
-                  className="group text-left rounded-xl px-3 py-2 -ml-3 transition-all hover:bg-gray-50 w-full cursor-pointer">
-                  <p className="font-hand text-base md:text-lg text-gray-600 leading-relaxed whitespace-pre-line break-words">{bio}</p>
-                  <span className="text-xs opacity-0 group-hover:opacity-40 transition-opacity mt-0.5 block">✏️</span>
+                  className="group text-left rounded-xl px-3 py-2 -ml-3 transition-all hover:bg-gray-50 w-full">
+                  <p className="font-hand text-lg text-gray-600 leading-relaxed whitespace-pre-line break-words">{bio}</p>
+                  <span className="text-sm opacity-0 group-hover:opacity-40 transition-opacity mt-1 block">✏️</span>
                 </button>
               )}
-
-              {/* Stats inline */}
-              <div className="flex items-center gap-4 pt-1">
-                <span className="font-hand text-sm text-gray-500"><strong className="text-gray-800">{userDrawings.length}</strong> dibujos</span>
-                <span className="text-gray-300">·</span>
-                <span className="font-hand text-sm text-gray-500"><strong className="text-gray-800">{totalLikes || "—"}</strong> likes</span>
-                <span className="text-gray-300">·</span>
-                <span className="font-hand text-sm text-gray-500">{hasDrawnToday ? "✓" : "—"} hoy</span>
-              </div>
             </div>
           </div>
+        </div>
+
+        {/* ── FILA 1b: Stats en 3 cards ── */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { value: userDrawings.length, label: "dibujos", style: { color: "#059669" } },
+            { value: totalLikes || "—", label: "likes recibidos", style: { background: "linear-gradient(135deg,#4f46e5,#7c3aed)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" } },
+            { value: hasDrawnToday ? "✓" : "—", label: "mancha de hoy", style: { color: "#f59e0b" } },
+          ].map(({ value, label, style }) => (
+            <div key={label} className="text-center rounded-3xl py-6 bg-white"
+              style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
+              <p className="font-display text-5xl" style={style}>{value}</p>
+              <p className="font-hand text-sm text-gray-400 mt-2">{label}</p>
+            </div>
+          ))}
         </div>
 
         {/* ── FILA 2: Avatar | Menú ── */}
