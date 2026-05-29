@@ -471,6 +471,7 @@ export default function Login() {
                 onChange={e => setNombre(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && handleEntrar()}
                 placeholder="tu nombre aquí"
+                maxLength={50}
                 className="w-full font-hand text-base text-gray-800 placeholder-gray-300 px-4 py-3 rounded-xl outline-none transition-all duration-200"
                 style={{
                   background: "rgba(255,255,255,0.7)",

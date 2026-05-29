@@ -512,7 +512,7 @@ export default function Perfil() {
                 style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.18)" }}>
                 ✦ artista plop
               </span>
-              <h1 className="font-display text-4xl md:text-6xl text-gray-900 leading-tight mb-1">{nombre}</h1>
+              <h1 className="font-display text-4xl md:text-6xl text-gray-900 leading-tight mb-1 truncate max-w-full">{nombre}</h1>
               <p className="font-hand text-sm text-gray-400">
                 {memberSince ? `miembro desde ${memberSince}` : "artista de manchas"}
               </p>
@@ -531,25 +531,29 @@ export default function Perfil() {
                     onChange={e => setBio(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter" && e.metaKey) saveBio(); }}
                     rows={2}
+                    maxLength={500}
                     className="w-full font-hand text-base text-gray-700 leading-relaxed resize-none outline-none rounded-xl p-3"
                     style={{ background: "#FFFDF7", border: "1.5px solid rgba(99,102,241,0.35)" }}
                   />
-                  <div className="flex items-center gap-2">
-                    <button onClick={saveBio}
-                      className="font-hand text-sm text-white px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity"
-                      style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}>
-                      guardar
-                    </button>
-                    <button onClick={() => setEditingBio(false)}
-                      className="font-hand text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                      cancelar
-                    </button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <button onClick={saveBio}
+                        className="font-hand text-sm text-white px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity"
+                        style={{ background: "linear-gradient(135deg,#4f46e5,#7c3aed)" }}>
+                        guardar
+                      </button>
+                      <button onClick={() => setEditingBio(false)}
+                        className="font-hand text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                        cancelar
+                      </button>
+                    </div>
+                    <span className="font-hand text-xs text-gray-400">{bio.length}/500</span>
                   </div>
                 </div>
               ) : (
                 <button onClick={() => setEditingBio(true)}
                   className="group text-left rounded-xl px-3 py-2 -ml-3 transition-all hover:bg-gray-50 w-full">
-                  <p className="font-hand text-lg text-gray-600 leading-relaxed whitespace-pre-line">{bio}</p>
+                  <p className="font-hand text-lg text-gray-600 leading-relaxed whitespace-pre-line break-words">{bio}</p>
                   <span className="text-sm opacity-0 group-hover:opacity-40 transition-opacity mt-1 block">✏️</span>
                 </button>
               )}
