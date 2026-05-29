@@ -676,11 +676,11 @@ export default function Perfil() {
                   className="flex flex-col items-center justify-center gap-2 rounded-2xl p-5 bg-white"
                   style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
                   {isImage ? (
-                    <img src={a.iconUrl} alt="" className="w-8 h-8 object-contain" />
+                    <img src={a.iconUrl} alt="" className="w-14 h-14 object-contain" />
                   ) : (
-                    <span className="text-3xl">{a.icon || a.iconUrl || "🏆"}</span>
+                    <span className="text-5xl">{a.icon || a.iconUrl || "🏆"}</span>
                   )}
-                  <span className="font-hand text-xs text-gray-700 text-center leading-tight">{a.title}</span>
+                  <span className="font-hand text-sm text-gray-700 text-center leading-tight">{a.title}</span>
                 </div>
               );
             })}
