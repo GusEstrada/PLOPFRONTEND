@@ -522,7 +522,7 @@ export default function Perfil() {
             <div className="hidden md:block w-px self-stretch bg-gray-100" />
 
             {/* Derecha: bio editable */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {editingBio ? (
                 <div className="space-y-2">
                   <textarea
@@ -532,7 +532,7 @@ export default function Perfil() {
                     onKeyDown={e => { if (e.key === "Enter" && e.metaKey) saveBio(); }}
                     rows={2}
                     maxLength={500}
-                    className="w-full font-hand text-base text-gray-700 leading-relaxed resize-none outline-none rounded-xl p-3"
+                    className="w-full font-hand text-base text-gray-700 leading-relaxed resize-none outline-none rounded-xl p-3 break-words"
                     style={{ background: "#FFFDF7", border: "1.5px solid rgba(99,102,241,0.35)" }}
                   />
                   <div className="flex items-center justify-between">
