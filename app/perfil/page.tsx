@@ -6,6 +6,7 @@ import NavBar from "@/app/inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
 import { computeBounds } from "@/app/dibujar/inkblot";
 import { AchievementToast, useAchievementToast } from "@/app/components/AchievementToast";
+import { BlotPreviewModal } from "@/app/components/BlotPreviewModal";
 
 interface CatalogItem {
   type: "head" | "eyes" | "mouth" | "acc";
@@ -135,41 +136,48 @@ function InkPreview({ lines, className }: { lines: LineData[]; className?: strin
   );
 }
 
-function BlotBadge({ blot }: { blot?: Drawing["blot"] }) {
+function BlotBadge({ blot, onBlotClick }: { blot?: Drawing["blot"]; onBlotClick?: (blot: Drawing["blot"]) => void }) {
   if (!blot) return null;
-  if (blot.imageUrl) {
-    return (
-      <div className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm">
-        <img src={blot.imageUrl} alt="" className="w-full h-full object-cover" />
-      </div>
-    );
-  }
-  if (blot.mainBlot && blot.mainBlot.length > 0) {
-    const b = computeBounds(blot.mainBlot);
-    const path = blot.mainBlot.reduce((acc, p, i, arr) => {
-      if (i % 2 === 1) {
-        return i === 1 ? `M ${arr[i - 1]} ${arr[i]}` : `${acc} L ${arr[i - 1]} ${arr[i]}`;
-      }
-      return acc;
-    }, "");
-    const pad = 4;
-    return (
-      <div className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white">
-        <svg viewBox={`${b.minX - pad} ${b.minY - pad} ${b.w + pad * 2} ${b.h + pad * 2}`} className="w-full h-full">
-          <path d={`${path} Z`} fill="black" />
-        </svg>
-      </div>
-    );
-  }
-  return null;
+  const inner = blot.imageUrl ? (
+    <img src={blot.imageUrl} alt="" className="w-full h-full object-cover" />
+  ) : blot.mainBlot && blot.mainBlot.length > 0 ? (
+    <SvgBadge points={blot.mainBlot} />
+  ) : null;
+  if (!inner) return null;
+
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onBlotClick?.(blot); }}
+      className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:scale-110 transition-transform"
+    >
+      {inner}
+    </button>
+  );
 }
 
-function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted, onNewAchievements }: {
+function SvgBadge({ points }: { points: number[] }) {
+  const b = computeBounds(points);
+  const path = points.reduce((acc, p, i, arr) => {
+    if (i % 2 === 1) {
+      return i === 1 ? `M ${arr[i - 1]} ${arr[i]}` : `${acc} L ${arr[i - 1]} ${arr[i]}`;
+    }
+    return acc;
+  }, "");
+  const pad = 4;
+  return (
+    <svg viewBox={`${b.minX - pad} ${b.minY - pad} ${b.w + pad * 2} ${b.h + pad * 2}`} className="w-full h-full">
+      <path d={`${path} Z`} fill="black" />
+    </svg>
+  );
+}
+
+function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted, onNewAchievements, onBlotClick }: {
   drawing: Drawing;
   onClose: () => void;
   currentUser: { id: string; name: string } | null;
   onDrawingDeleted: (drawingId: string) => void;
   onNewAchievements: (achievements: any[]) => void;
+  onBlotClick?: (blot: Drawing["blot"]) => void;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
@@ -276,7 +284,7 @@ function ViewModal({ drawing, onClose, currentUser, onDrawingDeleted, onNewAchie
         <div className="p-6">
           <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden mb-4 relative">
             <InkPreview lines={drawing.lines} className="w-full h-full" />
-            <BlotBadge blot={drawing.blot} />
+            <BlotBadge blot={drawing.blot} onBlotClick={onBlotClick} />
           </div>
           <div className="flex items-center gap-4 mb-6">
             {currentUser && (
@@ -365,6 +373,7 @@ export default function Perfil() {
   const [editingBio, setEditingBio] = useState(false);
   const [userDrawings, setUserDrawings] = useState<Drawing[]>([]);
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null);
+  const [previewBlot, setPreviewBlot] = useState<Drawing["blot"] | null>(null);
   const [achievements, setAchievements] = useState<any[]>([]);
   const [todayBlotId, setTodayBlotId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -636,7 +645,7 @@ export default function Perfil() {
                   style={{ border: "1px solid rgba(0,0,0,0.06)", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
                   <div className="w-full h-28 pointer-events-none relative">
                     <InkPreview lines={d.lines} />
-                    <BlotBadge blot={d.blot} />
+                    <BlotBadge blot={d.blot} onBlotClick={setPreviewBlot} />
                   </div>
                   <span className="font-hand text-sm mt-2 text-gray-500">
                     {new Date(d.createdAt).toLocaleDateString("es-MX", { day: "numeric", month: "short" })}
@@ -688,11 +697,15 @@ export default function Perfil() {
           currentUser={user}
           onDrawingDeleted={(id) => setUserDrawings(prev => prev.filter(d => d.id !== id))}
           onNewAchievements={(a) => a.forEach(pushToast)}
+          onBlotClick={setPreviewBlot}
         />
       )}
       {toastQueue.map(a => (
         <AchievementToast key={a.id} item={a} onDismiss={dismissToast} />
       ))}
+      {previewBlot && (
+        <BlotPreviewModal blot={previewBlot} onClose={() => setPreviewBlot(null)} />
+      )}
     </div>
   );
 }

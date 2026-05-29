@@ -7,6 +7,7 @@ import NavBar from "../inicio/NavBar";
 import { apiFetch, getUser } from "@/lib/api";
 import { computeBounds } from "@/app/dibujar/inkblot";
 import { AchievementToast, useAchievementToast } from "@/app/components/AchievementToast";
+import { BlotPreviewModal } from "@/app/components/BlotPreviewModal";
 
 interface User {
   id: string;
@@ -113,33 +114,39 @@ function InkPreview({ lines, className }: { lines: LineData[]; className?: strin
   );
 }
 
-function BlotBadge({ blot }: { blot?: Drawing["blot"] }) {
+function BlotBadge({ blot, onBlotClick }: { blot?: Drawing["blot"]; onBlotClick?: (blot: Drawing["blot"]) => void }) {
   if (!blot) return null;
-  if (blot.imageUrl) {
-    return (
-      <div className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm">
-        <img src={blot.imageUrl} alt="" className="w-full h-full object-cover" />
-      </div>
-    );
-  }
-  if (blot.mainBlot && blot.mainBlot.length > 0) {
-    const b = computeBounds(blot.mainBlot);
-    const path = blot.mainBlot.reduce((acc, p, i, arr) => {
-      if (i % 2 === 1) {
-        return i === 1 ? `M ${arr[i - 1]} ${arr[i]}` : `${acc} L ${arr[i - 1]} ${arr[i]}`;
-      }
-      return acc;
-    }, "");
-    const pad = 4;
-    return (
-      <div className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white">
-        <svg viewBox={`${b.minX - pad} ${b.minY - pad} ${b.w + pad * 2} ${b.h + pad * 2}`} className="w-full h-full">
-          <path d={`${path} Z`} fill="black" />
-        </svg>
-      </div>
-    );
-  }
-  return null;
+  const inner = blot.imageUrl ? (
+    <img src={blot.imageUrl} alt="" className="w-full h-full object-cover" />
+  ) : blot.mainBlot && blot.mainBlot.length > 0 ? (
+    <SvgBadge points={blot.mainBlot} />
+  ) : null;
+  if (!inner) return null;
+
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onBlotClick?.(blot); }}
+      className="absolute top-1 right-1 w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm cursor-pointer hover:scale-110 transition-transform"
+    >
+      {inner}
+    </button>
+  );
+}
+
+function SvgBadge({ points }: { points: number[] }) {
+  const b = computeBounds(points);
+  const path = points.reduce((acc, p, i, arr) => {
+    if (i % 2 === 1) {
+      return i === 1 ? `M ${arr[i - 1]} ${arr[i]}` : `${acc} L ${arr[i - 1]} ${arr[i]}`;
+    }
+    return acc;
+  }, "");
+  const pad = 4;
+  return (
+    <svg viewBox={`${b.minX - pad} ${b.minY - pad} ${b.w + pad * 2} ${b.h + pad * 2}`} className="w-full h-full">
+      <path d={`${path} Z`} fill="black" />
+    </svg>
+  );
 }
 
 function DetailModal({
@@ -151,6 +158,7 @@ function DetailModal({
   onCommentDeleted,
   onDrawingDeleted,
   onNewAchievements,
+  onBlotClick,
   isLiked,
 }: {
   drawing: Drawing;
@@ -161,6 +169,7 @@ function DetailModal({
   onCommentDeleted: (drawingId: string) => void;
   onDrawingDeleted: (drawingId: string) => void;
   onNewAchievements: (achievements: any[]) => void;
+  onBlotClick?: (blot: Drawing["blot"]) => void;
   isLiked: boolean;
 }) {
   const [comments, setComments] = useState<Comment[]>([]);
@@ -255,7 +264,7 @@ function DetailModal({
         <div className="p-6">
           <div className="w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden mb-4 relative">
             <InkPreview lines={drawing.lines} className="w-full h-full" />
-            <BlotBadge blot={drawing.blot} />
+            <BlotBadge blot={drawing.blot} onBlotClick={onBlotClick} />
           </div>
 
           <div className="flex items-center gap-4 mb-6">
@@ -337,6 +346,7 @@ export default function Galeria() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [previewBlot, setPreviewBlot] = useState<Drawing["blot"] | null>(null);
   const currentUser = getUser();
   const { queue: toastQueue, push: pushToast, dismiss: dismissToast } = useAchievementToast();
 
@@ -404,6 +414,7 @@ export default function Galeria() {
           onCommentDeleted={(id) => handleCommentCountChange(id, -1)}
           onDrawingDeleted={handleDrawingDeleted}
           onNewAchievements={(a) => a.forEach(pushToast)}
+          onBlotClick={setPreviewBlot}
           isLiked={likedIds.has(selectedDrawing.id)}
         />
       )}
@@ -472,7 +483,7 @@ export default function Galeria() {
                 >
                   <div className="w-full h-32 mb-2 bg-white/40 rounded-lg overflow-hidden pointer-events-none relative">
                     <InkPreview lines={d.lines} />
-                    <BlotBadge blot={d.blot} />
+                    <BlotBadge blot={d.blot} onBlotClick={setPreviewBlot} />
                   </div>
                   <div className="flex items-center justify-between">
                     <Link href={`/usuario/${d.user.id}`} onClick={e => e.stopPropagation()}
@@ -522,6 +533,9 @@ export default function Galeria() {
       {toastQueue.map(a => (
         <AchievementToast key={a.id} item={a} onDismiss={dismissToast} />
       ))}
+      {previewBlot && (
+        <BlotPreviewModal blot={previewBlot} onClose={() => setPreviewBlot(null)} />
+      )}
     </div>
   );
 }
